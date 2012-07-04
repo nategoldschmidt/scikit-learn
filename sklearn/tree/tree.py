@@ -852,14 +852,15 @@ class DecisionTreeEmpiricalRegressor(BaseDecisionTree, EmpiricalRegressorMixin):
                        max_features=None,
                        compute_importances=False,
                        random_state=None):
-        super(DecisionTreeEmpiricalRegressor, self).__init__(criterion,
-                                                             max_depth,
-                                                             min_samples_split,
-                                                             min_samples_leaf,
-                                                             min_density,
-                                                             max_features,
-                                                             compute_importances,
-                                                             random_state)
+        super(DecisionTreeEmpiricalRegressor, self).__init__(
+            criterion,
+            max_depth,
+            min_samples_split,
+            min_samples_leaf,
+            min_density,
+            max_features,
+            compute_importances,
+            random_state)
 
 
 class ExtraTreeClassifier(DecisionTreeClassifier):
