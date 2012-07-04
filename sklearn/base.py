@@ -326,6 +326,12 @@ class RegressorMixin(object):
 
 
 ###############################################################################
+class EmpiricalRegressorMixin(object):
+    """Mixin class for all empirical regression estimators in scikit-learn"""
+    pass
+
+
+###############################################################################
 class TransformerMixin(object):
     """Mixin class for all transformers in scikit-learn"""
 

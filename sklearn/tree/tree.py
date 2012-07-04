@@ -14,7 +14,7 @@ from __future__ import division
 import numpy as np
 from abc import ABCMeta, abstractmethod
 
-from ..base import BaseEstimator, ClassifierMixin, RegressorMixin
+from ..base import BaseEstimator, ClassifierMixin, RegressorMixin, EmpiricalRegressorMixin
 from ..feature_selection.selector_mixin import SelectorMixin
 from ..utils import array2d, check_random_state
 
@@ -841,6 +841,25 @@ class DecisionTreeRegressor(BaseDecisionTree, RegressorMixin):
                                                     max_features,
                                                     compute_importances,
                                                     random_state)
+
+
+class DecisionTreeEmpiricalRegressor(BaseDecisionTree, EmpiricalRegressorMixin):
+    def __init__(self, criterion="mse", #TODO: fixme
+                       max_depth=None,
+                       min_samples_split=1,
+                       min_samples_leaf=1,
+                       min_density=0.1,
+                       max_features=None,
+                       compute_importances=False,
+                       random_state=None):
+        super(DecisionTreeEmpiricalRegressor, self).__init__(criterion,
+                                                             max_depth,
+                                                             min_samples_split,
+                                                             min_samples_leaf,
+                                                             min_density,
+                                                             max_features,
+                                                             compute_importances,
+                                                             random_state)
 
 
 class ExtraTreeClassifier(DecisionTreeClassifier):
