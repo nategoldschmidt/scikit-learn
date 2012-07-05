@@ -289,10 +289,9 @@ class Tree(object):
                     init_error = _tree._error_at_node(y, sample_mask, criterion,
                                                       n_node_samples)
 
-            value = criterion.init_value()
-
             # Current node is leaf
             if feature == -1:
+                value = criterion.init_value()
                 if isinstance(self, EmpiricalTree):
                     self._add_leaf(parent, is_left_child, value,
                                    init_error, n_node_samples, y)
@@ -317,7 +316,7 @@ class Tree(object):
                 node_id = self._add_split_node(parent, is_left_child, feature,
                                                threshold, best_error,
                                                init_error, n_node_samples,
-                                               value)
+                                               None) #TODO: make sure value not needed
 
                 # left child recursion
                 recursive_partition(X, X_argsorted, y,
@@ -426,17 +425,16 @@ class EmpiricalTree(Tree):
         i = 0
         n = X.shape[0]
         node_id = 0
-        K = values.shape[1]
         results = []
         n_results = []
         for i in range(n):
             node_id = 0
             # While node_id not a leaf
-            while children[node_id, 0] != -1 and children[node_id, 1] != -1:
-                if X[i, feature[node_id]] <= threshold[node_id]:
-                    node_id = children[node_id, 0]
+            while self.children[node_id, 0] != -1 and self.children[node_id, 1] != -1:
+                if X[i, self.feature[node_id]] <= self.threshold[node_id]:
+                    node_id = self.children[node_id, 0]
                 else:
-                    node_id = children[node_id, 1]
+                    node_id = self.children[node_id, 1]
                 results.append(self.value[node_id])
                 n_results.append(self.n_samples[node_id])
         return results, n_results

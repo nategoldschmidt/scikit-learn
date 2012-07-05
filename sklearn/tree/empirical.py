@@ -1,14 +1,63 @@
 from . import _tree
 
-
 class EmpiricalCriterion(_tree.Criterion):
+
+    def __init__(self):
+        self.reset()
+
+
+    def init(self, y, sample_mask, n_samples,
+                   n_total_samples):
+        """Initialise the criterion class for new split point."""
+        assert len(y) == n_total_samples
+        assert sample_mask.count(True) == n_samples
+        self.responses = y
+        self.sample_mask = sample_mask
+        self.n_samples = n_samples
+        self.n_total_samples = n_total_samples
+
+
+    def update(self, a, b, y, X_argsorted_i,
+                    sample_mask):
+        """Update the criteria for each value in interval [a,b) (where a and b
+           are indices in `X_argsorted_i`)."""
+        for i in range(len(y)):
+            s = X_argsorted_i[i]
+            if not sample_mask[s]:
+                continue
+            if i < b:
+                self.responses_l.append(y[s])
+            else:
+                self.responses_r.append(y[s])
+
+    def reset(self):
+        """Reset the criterion for a new feature index."""
+        self.responses = None
+        self.sample_mask = None
+        self.n_samples = 0
+        self.n_total_samples = 0
+
+        self.responses_l = []
+        self.responses_r = []
+
+
     def init_value(self):
-        """Return the sum of all responses at this node."""
-        pass
+        """Return all responses at this node."""
+        return [r for r, m in zip(self.responses, self.sample_mask) if m]
 
 
 class EUCLIDEAN(EmpiricalCriterion):
-    pass
+    def eval(self):
+        """Evaluate the criteria (aka the split error)."""
+        sum_l = sum(self.responses_l)
+        sum_r = sum(self.responses_l)
+        l_mean = np.ravel(sum_l / len(self.responses_l))
+        r_mean = np.ravel(sum_r / len(self.responses_r))
+
+        ldiff = sum([np.linalg.norm(np.ravel(r) - sum_l) for r in self.responses_l])
+        rdiff = sum([np.linalg.norm(np.ravel(r) - sum_l) for r in self.responses_l])
+
+        return -ldiff - rdiff
 
 
 def error_at_node(y, sample_mask, criterion, n_node_samples):
