@@ -19,6 +19,7 @@ from ..feature_selection.selector_mixin import SelectorMixin
 from ..utils import array2d, check_random_state
 
 from . import _tree
+from . import empirical
 
 __all__ = ["DecisionTreeClassifier",
            "DecisionTreeRegressor",
@@ -37,8 +38,10 @@ REGRESSION = {
 }
 
 EMPIRICAL_REGRESSION = {
-    "mse": _tree.MSE,
-    "frobenius": _tree.FROBENIUS,
+    "mse": empirical.mse,
+    "frobenius": empirical.frobenius,
+    "sse": empirical.sse,
+    "euclidean": empirical.euclidean,
 }
 
 
@@ -278,8 +281,12 @@ class Tree(object):
                     min_samples_leaf, max_features, criterion, random_state)
             else:
                 feature = -1
-                init_error = _tree._error_at_leaf(y, sample_mask, criterion,
-                                                  n_node_samples)
+                if self.is_empirical:
+                    init_error = empirical.error_at_leaf(y, sample_mask, criterion,
+                                                         n_node_samples)
+                else:
+                    init_error = _tree._error_at_leaf(y, sample_mask, criterion,
+                                                      n_node_samples)
 
             value = criterion.init_value()
 
@@ -533,6 +540,10 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
 
         # Build tree
         self.tree_ = Tree(self.n_classes_, self.n_features_)
+        if isinstance(self, EmpiricalRegressorMixin):
+            self.tree_.is_empirical = True
+        else:
+            self.tree_.is_empirical = False
         self.tree_.build(X, y, criterion, max_depth,
                 self.min_samples_split, self.min_samples_leaf,
                 self.min_density, max_features, self.random_state,
@@ -877,6 +888,7 @@ class DecisionTreeEmpiricalRegressor(BaseDecisionTree, EmpiricalRegressorMixin):
             max_features,
             compute_importances,
             random_state)
+        self.find_split_ = empirical.find_best_split
 
 
 class ExtraTreeClassifier(DecisionTreeClassifier):
