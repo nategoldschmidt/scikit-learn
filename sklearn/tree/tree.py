@@ -475,15 +475,16 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
             self.n_classes_ = self.classes_.shape[0]
             criterion = CLASSIFICATION[self.criterion](self.n_classes_)
             y = np.searchsorted(self.classes_, y)
-        elif is_regression:
+        elif isinstance(self, RegressorMixin):
             self.classes_ = None
             self.n_classes_ = 1
             criterion = REGRESSION[self.criterion]()
-        else:
-            # Empirical regression
+        elif isinstance(self, EmpiricalRegressorMixin):
             self.classes_ = None
             self.n_classes_ = 1
             criterion = EMPIRICAL_REGRESSION[self.criterion]()
+        else:
+            raise Exception('not an instance of any supported mixin')
 
 
         y = np.ascontiguousarray(y, dtype=DTYPE)
@@ -576,8 +577,12 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         if isinstance(self, ClassifierMixin):
             predictions = self.classes_.take(np.argmax(
                 self.tree_.predict(X), axis=1), axis=0)
-        else:
+        elif isinstance(self, RegressorMixin):
             predictions = self.tree_.predict(X).ravel()
+        elif isinstance(self, EmpiricalRegressorMixin):
+            predictions = self.tree_.predict(X)
+        else:
+            raise Exception('not an instance of any supported mixin')
 
         return predictions
 
