@@ -59,27 +59,27 @@ def find_best_split(X,
     for feature_idx in range(max_features):
         i = features[feature_idx]
         # Get i-th col of X and X_sorted
-        X_i = (<DTYPE_t *>X.data) + X_stride * i
-        X_argsorted_i = (<int *>X_argsorted.data) + X_argsorted_stride * i
+        X_i = X[:,i]
+        X_argsorted_i = X_argsorted[:,i]
 
         # Reset the criterion for this feature
         criterion.reset()
 
         # Index of smallest sample in X_argsorted_i that is in the sample mask
         a = 0
-        while sample_mask_ptr[X_argsorted_i[a]] == 0:
+        while sample_mask[X_argsorted_i[a]] == 0:
             a = a + 1
 
         # Consider splits between two consecutive samples
         while True:
             # Find the following larger sample
-            b = smallest_sample_larger_than(a, X_i, X_argsorted_i,
-                                            sample_mask_ptr, n_total_samples)
+            b = smallest_sample_larger_than(a, X_i.ctypes.data, X_argsorted_i.ctypes.data,
+                                            sample_mask.ctypes.data, n_total_samples)
             if b == -1:
                 break
 
             # Better split than the best so far?
-            n_left = criterion.update(a, b, y_ptr, X_argsorted_i, sample_mask_ptr)
+            n_left = criterion.update(a, b, y, X_argsorted_i, sample_mask)
 
             # Only consider splits that respect min_leaf
             if n_left < min_leaf or (n_samples - n_left) < min_leaf:
