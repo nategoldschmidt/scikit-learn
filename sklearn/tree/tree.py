@@ -38,9 +38,6 @@ REGRESSION = {
 }
 
 EMPIRICAL_REGRESSION = {
-    "mse": empirical.mse,
-    "frobenius": empirical.frobenius,
-    "sse": empirical.sse,
     "euclidean": empirical.euclidean,
 }
 
@@ -890,7 +887,7 @@ class DecisionTreeRegressor(BaseDecisionTree, RegressorMixin):
 
 
 class DecisionTreeEmpiricalRegressor(BaseDecisionTree, EmpiricalRegressorMixin):
-    def __init__(self, criterion="frobenius",
+    def __init__(self, criterion="euclidean",
                        max_depth=None,
                        min_samples_split=1,
                        min_samples_leaf=1,

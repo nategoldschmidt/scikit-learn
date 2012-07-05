@@ -40,17 +40,5 @@ class EmpiricalCriterion(_tree.Criterion):
         pass
 
 
-class MSE(EmpiricalCriterion):
-    pass
-
-
-class FROBENIUS(EmpiricalCriterion):
-    pass
-
-
-class SSE(EmpiricalCriterion):
-    pass
-
-
 class EUCLIDEAN(EmpiricalCriterion):
     pass
