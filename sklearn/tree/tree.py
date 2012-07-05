@@ -203,7 +203,7 @@ class Tree(object):
         self.children.resize((capacity, 2), refcheck=False)
         self.feature.resize((capacity,), refcheck=False)
         self.threshold.resize((capacity,), refcheck=False)
-        self.value.resize((capacity,) + tuple(self.value.shape[1:])), refcheck=False)
+        self.value.resize((capacity,) + tuple(self.value.shape[1:]), refcheck=False)
         self.best_error.resize((capacity,), refcheck=False)
         self.init_error.resize((capacity,), refcheck=False)
         self.n_samples.resize((capacity,), refcheck=False)
@@ -500,7 +500,6 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         n_samples, self.n_features_ = X.shape
 
         is_classification = isinstance(self, ClassifierMixin)
-        is_regression = isinstance(self, RegressorMixin)
 
         if is_classification:
             self.classes_ = np.unique(y)

@@ -9,6 +9,7 @@ class EmpiricalCriterion(_tree.Criterion):
         self.responses_l = None
         self.responses_r = None
 
+
     def init(self, y, sample_mask, n_samples,
                    n_total_samples):
         """Initialise the criterion class for new split point."""
