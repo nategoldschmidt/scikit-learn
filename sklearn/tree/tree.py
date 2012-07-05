@@ -423,12 +423,23 @@ class Tree(object):
 
 class EmpiricalTree(Tree):
     def predict(self, X):
-        return empirical.predict_tree(X,
-                                      self.children,
-                                      self.feature,
-                                      self.threshold,
-                                      self.value,
-                                      self.n_samples)
+        i = 0
+        n = X.shape[0]
+        node_id = 0
+        K = values.shape[1]
+        results = []
+        n_results = []
+        for i in range(n):
+            node_id = 0
+            # While node_id not a leaf
+            while children[node_id, 0] != -1 and children[node_id, 1] != -1:
+                if X[i, feature[node_id]] <= threshold[node_id]:
+                    node_id = children[node_id, 0]
+                else:
+                    node_id = children[node_id, 1]
+                results.append(self.value[node_id])
+                n_results.append(self.n_samples[node_id])
+        return results, n_results
 
 
 class BaseDecisionTree(BaseEstimator, SelectorMixin):
