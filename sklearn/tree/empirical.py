@@ -1,4 +1,5 @@
-from . import _tree
+import sys
+import _tree
 import numpy as np
 
 class EmpiricalCriterion(_tree.Criterion):
@@ -8,6 +9,7 @@ class EmpiricalCriterion(_tree.Criterion):
         self.sample_mask = None
         self.responses_l = None
         self.responses_r = None
+        self.n_samples = 0
 
 
     def init(self, y, sample_mask, n_samples,
@@ -17,6 +19,7 @@ class EmpiricalCriterion(_tree.Criterion):
         assert [t for t in sample_mask].count(True) == n_samples
         self.responses = y
         self.sample_mask = sample_mask
+        self.n_samples = n_samples
         self.reset()
 
 
@@ -51,11 +54,10 @@ class EmpiricalCriterion(_tree.Criterion):
 class Euclidean(EmpiricalCriterion):
     def eval(self):
         """Evaluate the criteria (aka the split error)."""
-        n_total = len(self.responses)
-        sum_r = sum(self.responses_l)
+        sum_r = sum(self.responses_r)
         n_r = len(self.responses_r)
         mean_r = np.ravel(sum_r / n_r)
-        rdiff = n_r / n_total * sum([np.linalg.norm(np.ravel(r) - mean_r) for r in self.responses_l])
+        rdiff = n_r / self.n_samples * sum([np.linalg.norm(np.ravel(r) - mean_r) for r in self.responses_r])
 
         if len(self.responses_l) == 0:
             ldiff = 0
@@ -63,7 +65,7 @@ class Euclidean(EmpiricalCriterion):
             sum_l = sum(self.responses_l)
             n_l = len(self.responses_l)
             mean_l = np.ravel(sum_l / n_l)
-            ldiff = n_l / n_total * sum([np.linalg.norm(np.ravel(r) - mean_l) for r in self.responses_l])
+            ldiff = n_l / self.n_samples * sum([np.linalg.norm(np.ravel(r) - mean_l) for r in self.responses_l])
 
         return ldiff + rdiff
 
@@ -72,6 +74,27 @@ def error_at_leaf(y, sample_mask, criterion, n_node_samples):
     n_total_samples = y.shape[0]
     criterion.init(y, sample_mask, n_node_samples, n_total_samples)
     return criterion.eval()
+
+
+def smallest_sample_larger_than(sample_idx, X_i,
+                                X_argsorted_i, sample_mask,
+                                n_total_samples):
+    threshold = -sys.float_info.max
+
+    if sample_idx > -1:
+        threshold = X_i[X_argsorted_i[sample_idx]]
+
+    for idx in range(sample_idx + 1, n_total_samples):
+        j = X_argsorted_i[idx]
+
+        if sample_mask[j] == 0:
+            continue
+
+        if X_i[j] > threshold + 1.e-7:
+            return idx
+
+    return -1
+
 
 
 def find_best_split(X,
@@ -130,8 +153,8 @@ def find_best_split(X,
         # Consider splits between two consecutive samples
         while True:
             # Find the following larger sample
-            b = _tree.smallest_sample_larger_than(a, X_i.ctypes.data, X_argsorted_i.ctypes.data,
-                                                  sample_mask.ctypes.data, n_total_samples)
+            b = smallest_sample_larger_than(a, X_i, X_argsorted_i,
+                                            sample_mask, n_total_samples)
             if b == -1:
                 break
 
