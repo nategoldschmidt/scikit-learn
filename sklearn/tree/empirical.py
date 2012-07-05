@@ -2,11 +2,14 @@ from . import _tree
 
 def find_split(X, y, X_argsorted, sample_mask, n_node_samples,
                min_samples_leaf, max_features, criterion, random_state):
+    #TODO
     pass
 
 
 def error_at_node(y, sample_mask, criterion, n_node_samples):
-    pass
+    n_total_samples = y.shape[0]
+    criterion.init(y, sample_mask, n_samples, n_total_samples)
+    return criterion.eval()
 
 
 def predict_tree(X, children, feature, threshold, value, n_samples):
