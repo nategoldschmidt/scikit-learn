@@ -43,7 +43,7 @@ class EmpiricalCriterion(_tree.Criterion):
         return [r for r, m in zip(self.responses, self.sample_mask) if m]
 
 
-class EUCLIDEAN(EmpiricalCriterion):
+class Euclidean(EmpiricalCriterion):
     def eval(self):
         """Evaluate the criteria (aka the split error)."""
         sum_l = sum(self.responses_l)

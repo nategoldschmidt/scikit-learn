@@ -38,7 +38,7 @@ REGRESSION = {
 }
 
 EMPIRICAL_REGRESSION = {
-    "euclidean": empirical.euclidean,
+    "euclidean": empirical.Euclidean,
 }
 
 
