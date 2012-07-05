@@ -173,7 +173,7 @@ class Tree(object):
     LEAF = -1
     UNDEFINED = -2
 
-    def __init__(self, n_classes, n_features, capacity=3):
+    def __init__(self, n_classes, n_features, capacity=3, ydims=1):
         self.n_classes = n_classes
         self.n_features = n_features
 
@@ -186,7 +186,10 @@ class Tree(object):
         self.feature.fill(Tree.UNDEFINED)
 
         self.threshold = np.empty((capacity,), dtype=np.float64)
-        self.value = np.empty((capacity, n_classes), dtype=np.float64)
+        if ydims == 1:
+            self.value = np.empty((capacity, n_classes), dtype=np.float64)
+        else:
+            self.value = np.empty((capacity,) + ydims, dtype=np.float64)
 
         self.best_error = np.empty((capacity,), dtype=np.float32)
         self.init_error = np.empty((capacity,), dtype=np.float32)
@@ -203,7 +206,7 @@ class Tree(object):
         self.children.resize((capacity, 2), refcheck=False)
         self.feature.resize((capacity,), refcheck=False)
         self.threshold.resize((capacity,), refcheck=False)
-        self.value.resize((capacity, self.value.shape[1]), refcheck=False)
+        self.value.resize((capacity,) + tuple(self.value.shape[1:])), refcheck=False)
         self.best_error.resize((capacity,), refcheck=False)
         self.init_error.resize((capacity,), refcheck=False)
         self.n_samples.resize((capacity,), refcheck=False)
@@ -258,6 +261,7 @@ class Tree(object):
         self.children[node_id, :] = Tree.LEAF
 
         self.node_count += 1
+
         return node_id
 
     def build(self, X, y, criterion, max_depth, min_samples_split,
@@ -281,7 +285,7 @@ class Tree(object):
                     min_samples_leaf, max_features, criterion, random_state)
             else:
                 feature = -1
-                if self.is_empirical:
+                if isinstance(self, EmpiricalTree):
                     init_error = empirical.error_at_leaf(y, sample_mask, criterion,
                                                          n_node_samples)
                 else:
@@ -292,8 +296,13 @@ class Tree(object):
 
             # Current node is leaf
             if feature == -1:
-                self._add_leaf(parent, is_left_child, value,
-                               init_error, n_node_samples)
+                if isinstance(self, EmpiricalTree):
+                    self._add_leaf(parent, is_left_child, value,
+                                   init_error, n_node_samples, y)
+                else:
+                    self._add_leaf(parent, is_left_child, value,
+                                   init_error, n_node_samples)
+
 
             # Current node is internal node (= split node)
             else:
@@ -413,6 +422,16 @@ class Tree(object):
             importances /= normalizer
 
         return importances
+
+
+class EmpiricalTree(Tree):
+    def predict(self, X):
+        return empirical.predict_tree(X,
+                                      self.children,
+                                      self.feature,
+                                      self.threshold,
+                                      self.value,
+                                      self.n_samples)
 
 
 class BaseDecisionTree(BaseEstimator, SelectorMixin):
@@ -539,11 +558,11 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
             raise ValueError("max_features must be in (0, n_features]")
 
         # Build tree
-        self.tree_ = Tree(self.n_classes_, self.n_features_)
+
         if isinstance(self, EmpiricalRegressorMixin):
-            self.tree_.is_empirical = True
+            self.tree_ = EmpiricalTree(self.n_classes_, self.n_features_)
         else:
-            self.tree_.is_empirical = False
+            self.tree_ = Tree(self.n_classes_, self.n_features_)
         self.tree_.build(X, y, criterion, max_depth,
                 self.min_samples_split, self.min_samples_leaf,
                 self.min_density, max_features, self.random_state,

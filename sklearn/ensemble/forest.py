@@ -108,14 +108,6 @@ def _parallel_predict_regression(trees, X):
     return sum(tree.predict(X) for tree in trees)
 
 
-def _parallel_predict_empirical_regression(trees, X):
-    """Private function used to compute a batch of predictions within a job."""
-    samples = [tree.predict(X) for tree in trees]
-    result = sum([sum(r) for r in results])
-    n_samples = sum([len(r) for r in results])
-    return result, n_samples
-
-
 def _partition_trees(forest):
     """Private function used to partition trees between jobs."""
     # Compute the number of jobs
@@ -511,23 +503,8 @@ class ForestEmpiricalRegressor(BaseForest, EmpiricalRegressorMixin):
         y: array of shape = [n_samples]
             The predicted values.
         """
-        # Check data
-        X = np.atleast_2d(X)
-
-        # Assign chunk of trees to jobs
-        n_jobs, n_trees, starts = _partition_trees(self)
-
-        # Parallel loop
-        r = Parallel(n_jobs=n_jobs)(
-            delayed(_parallel_predict_empirical_regression)(
-                self.estimators_[starts[i]:starts[i + 1]], X)
-            for i in xrange(n_jobs))
-
-        # Reduce
-        samples, counts = zip(*r)
-        result = sum(samples) / sum(counts)
-
-        return result
+        #FIXME
+        pass
 
 
 class RandomForestClassifier(ForestClassifier):
