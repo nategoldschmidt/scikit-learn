@@ -27,6 +27,7 @@ class EmpiricalCriterion(_tree.Criterion):
                     sample_mask):
         """Update the criteria for each value in interval [a,b) (where a and b
            are indices in `X_argsorted_i`)."""
+        self.responses_r = []
         for i in range(len(y)):
             s = X_argsorted_i[i]
             if not sample_mask[s]:
