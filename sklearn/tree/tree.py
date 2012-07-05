@@ -283,10 +283,10 @@ class Tree(object):
             else:
                 feature = -1
                 if isinstance(self, EmpiricalTree):
-                    init_error = empirical.error_at_leaf(y, sample_mask, criterion,
+                    init_error = empirical.error_at_node(y, sample_mask, criterion,
                                                          n_node_samples)
                 else:
-                    init_error = _tree._error_at_leaf(y, sample_mask, criterion,
+                    init_error = _tree._error_at_node(y, sample_mask, criterion,
                                                       n_node_samples)
 
             value = criterion.init_value()

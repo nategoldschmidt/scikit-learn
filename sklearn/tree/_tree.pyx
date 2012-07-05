@@ -483,10 +483,10 @@ def _predict_tree(np.ndarray[DTYPE_t, ndim=2] X,
             pred[i, k] = values[node_id, k]
 
 
-def _error_at_leaf(np.ndarray[DTYPE_t, ndim=1, mode="c"] y,
+def _error_at_node(np.ndarray[DTYPE_t, ndim=1, mode="c"] y,
                    np.ndarray sample_mask, Criterion criterion,
                    int n_samples):
-    """Compute criterion error at leaf with terminal region defined
+    """Compute criterion error at node with terminal region defined
     by `sample_mask`. """
     cdef int n_total_samples = y.shape[0]
     cdef DTYPE_t *y_ptr = <DTYPE_t *>y.data

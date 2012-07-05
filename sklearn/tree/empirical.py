@@ -5,7 +5,7 @@ def find_split(X, y, X_argsorted, sample_mask, n_node_samples,
     pass
 
 
-def error_at_leaf():
+def error_at_node(y, sample_mask, criterion, n_node_samples):
     pass
 
 
