@@ -525,7 +525,7 @@ class ForestEmpiricalRegressor(BaseForest, EmpiricalRegressorMixin):
 
         # Reduce
         samples, counts = zip(*r)
-        result = sum(samples) / n_samples
+        result = sum(samples) / sum(counts)
 
         return result
 
