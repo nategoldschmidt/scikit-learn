@@ -23,6 +23,7 @@ from . import empirical
 
 __all__ = ["DecisionTreeClassifier",
            "DecisionTreeRegressor",
+           "DecisionTreeEmpiricalRegressor",
            "ExtraTreeClassifier",
            "ExtraTreeRegressor"]
 

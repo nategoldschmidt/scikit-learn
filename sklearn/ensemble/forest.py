@@ -49,6 +49,7 @@ from .base import BaseEnsemble
 
 __all__ = ["RandomForestClassifier",
            "RandomForestRegressor",
+           "RandomForestEmpiricalRegressor",
            "ExtraTreesClassifier",
            "ExtraTreesRegressor"]
 
