@@ -171,7 +171,7 @@ class Tree(object):
     LEAF = -1
     UNDEFINED = -2
 
-    def __init__(self, n_classes, n_features, capacity=3, ydims=1):
+    def __init__(self, n_classes, n_features, capacity=3):
         self.n_classes = n_classes
         self.n_features = n_features
 
@@ -184,10 +184,10 @@ class Tree(object):
         self.feature.fill(Tree.UNDEFINED)
 
         self.threshold = np.empty((capacity,), dtype=np.float64)
-        if ydims == 1:
-            self.value = np.empty((capacity, n_classes), dtype=np.float64)
+        if isinstance(self, EmpiricalTree):
+            self.value = {}
         else:
-            self.value = np.empty((capacity,) + ydims, dtype=np.float64)
+            self.value = np.empty((capacity, n_classes), dtype=np.float64)
 
         self.best_error = np.empty((capacity,), dtype=np.float32)
         self.init_error = np.empty((capacity,), dtype=np.float32)
@@ -204,7 +204,8 @@ class Tree(object):
         self.children.resize((capacity, 2), refcheck=False)
         self.feature.resize((capacity,), refcheck=False)
         self.threshold.resize((capacity,), refcheck=False)
-        self.value.resize((capacity,) + tuple(self.value.shape[1:]), refcheck=False)
+        if not isinstance(self, EmpiricalTree):
+            self.value.resize((capacity, self.value.shape[1]), refcheck=False)
         self.best_error.resize((capacity,), refcheck=False)
         self.init_error.resize((capacity,), refcheck=False)
         self.n_samples.resize((capacity,), refcheck=False)
@@ -284,10 +285,10 @@ class Tree(object):
             else:
                 feature = -1
                 if isinstance(self, EmpiricalTree):
-                    init_error = empirical.error_at_node(y, sample_mask, criterion,
+                    init_error = empirical.error_at_leaf(y, sample_mask, criterion,
                                                          n_node_samples)
                 else:
-                    init_error = _tree._error_at_node(y, sample_mask, criterion,
+                    init_error = _tree._error_at_leaf(y, sample_mask, criterion,
                                                       n_node_samples)
 
             # Current node is leaf
@@ -295,7 +296,7 @@ class Tree(object):
                 value = criterion.init_value()
                 if isinstance(self, EmpiricalTree):
                     self._add_leaf(parent, is_left_child, value,
-                                   init_error, n_node_samples, y)
+                                   init_error, n_node_samples)
                 else:
                     self._add_leaf(parent, is_left_child, value,
                                    init_error, n_node_samples)
@@ -436,8 +437,8 @@ class EmpiricalTree(Tree):
                     node_id = self.children[node_id, 0]
                 else:
                     node_id = self.children[node_id, 1]
-                results.append(self.value[node_id])
-                n_results.append(self.n_samples[node_id])
+            results.append(self.value[node_id])
+            n_results.append(self.n_samples[node_id])
         return results, n_results
 
 

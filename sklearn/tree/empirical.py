@@ -14,9 +14,10 @@ class EmpiricalCriterion(_tree.Criterion):
                    n_total_samples):
         """Initialise the criterion class for new split point."""
         assert len(y) == n_total_samples
-        assert sample_mask.count(True) == n_samples
+        assert [t for t in sample_mask].count(True) == n_samples
         self.responses = y
         self.sample_mask = sample_mask
+        self.reset()
 
 
     def update(self, a, b, y, X_argsorted_i,
@@ -31,11 +32,15 @@ class EmpiricalCriterion(_tree.Criterion):
                 self.responses_l.append(y[s])
             else:
                 self.responses_r.append(y[s])
+        return len(self.responses_l)
+
 
     def reset(self):
         """Reset the criterion for a new feature index."""
         self.responses_l = []
         self.responses_r = []
+        for r in self.responses:
+            self.responses_r.append(r)
 
 
     def init_value(self):
@@ -46,18 +51,24 @@ class EmpiricalCriterion(_tree.Criterion):
 class Euclidean(EmpiricalCriterion):
     def eval(self):
         """Evaluate the criteria (aka the split error)."""
-        sum_l = sum(self.responses_l)
+        n_total = len(self.responses)
         sum_r = sum(self.responses_l)
-        mean_l = np.ravel(sum_l / len(self.responses_l))
-        mean_r = np.ravel(sum_r / len(self.responses_r))
+        n_r = len(self.responses_r)
+        mean_r = np.ravel(sum_r / n_r)
+        rdiff = n_r / n_total * sum([np.linalg.norm(np.ravel(r) - mean_r) for r in self.responses_l])
 
-        ldiff = sum([np.linalg.norm(np.ravel(r) - mean_l) for r in self.responses_l])
-        rdiff = sum([np.linalg.norm(np.ravel(r) - mean_r) for r in self.responses_l])
+        if len(self.responses_l) == 0:
+            ldiff = 0
+        else:
+            sum_l = sum(self.responses_l)
+            n_l = len(self.responses_l)
+            mean_l = np.ravel(sum_l / n_l)
+            ldiff = n_l / n_total * sum([np.linalg.norm(np.ravel(r) - mean_l) for r in self.responses_l])
 
-        return -ldiff - rdiff
+        return ldiff + rdiff
 
 
-def error_at_node(y, sample_mask, criterion, n_node_samples):
+def error_at_leaf(y, sample_mask, criterion, n_node_samples):
     n_total_samples = y.shape[0]
     criterion.init(y, sample_mask, n_node_samples, n_total_samples)
     return criterion.eval()

@@ -63,6 +63,19 @@ def test_regression_toy():
     assert_almost_equal(clf.predict(T), true_result)
 
 
+def test_empirical_toy():
+    clf = tree.tree.DecisionTreeEmpiricalRegressor()
+    clf.fit(X, y)
+
+    assert_almost_equal(clf.predict(T), true_result)
+
+    # With subsampling
+    clf = tree.DecisionTreeRegressor(max_features=1, random_state=1)
+    clf.fit(X, y)
+
+    assert_almost_equal(clf.predict(T), true_result)
+
+
 def test_graphviz_toy():
     """Check correctness of graphviz output on a toy dataset."""
     clf = tree.DecisionTreeClassifier(max_depth=3, min_samples_split=1)
