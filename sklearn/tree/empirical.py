@@ -27,31 +27,20 @@ def find_best_split(X,
                     criterion,
                     random_state):
     # Variables declarations
-    cdef int n_total_samples = X.shape[0]
-    cdef int n_features = X.shape[1]
-    cdef int i, a, b, best_i = -1
-    cdef np.int32_t feature_idx = -1
-    cdef int n_left = 0
-    cdef DTYPE_t t, initial_error, error
-    cdef DTYPE_t best_error = np.inf, best_t = np.inf
-    cdef DTYPE_t *y_ptr = <DTYPE_t *>y.data
-    cdef DTYPE_t *X_i = NULL
-    cdef int *X_argsorted_i = NULL
-    cdef BOOL_t *sample_mask_ptr = <BOOL_t *>sample_mask.data
-    cdef np.ndarray[np.int32_t, ndim=1, mode='c'] features = None
+    n_total_samples = X.shape[0]
+    n_features = X.shape[1]
+    i = -1
+    a = -1
+    b = -1
+    best_i = -1
 
-    # Compute the column strides (increment in pointer elements to get
-    # from column i to i + 1) for `X` and `X_argsorted`
-    cdef int X_elem_stride = X.strides[0]
-    cdef int X_col_stride = X.strides[1]
-    cdef int X_stride = X_col_stride / X_elem_stride
-    cdef int X_argsorted_elem_stride = X_argsorted.strides[0]
-    cdef int X_argsorted_col_stride = X_argsorted.strides[1]
-    cdef int X_argsorted_stride = X_argsorted_col_stride / X_argsorted_elem_stride
+    feature_idx = -1
+    n_left = 0
+    best_error = np.inf
+    best_t = np.inf
 
     # Compute the initial criterion value in the node
-    X_argsorted_i = <int *>X_argsorted.data
-    criterion.init(y_ptr, sample_mask_ptr, n_samples, n_total_samples)
+    criterion.init(y, sample_mask, n_samples, n_total_samples)
     initial_error = criterion.eval()
 
     if initial_error == 0:  # break early if the node is pure
