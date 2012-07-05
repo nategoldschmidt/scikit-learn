@@ -820,7 +820,7 @@ class RandomForestEmpiricalRegressor(ForestEmpiricalRegressor):
                  n_jobs=1,
                  random_state=None,
                  verbose=0):
-        super(RandomForestSupervisedClusterer, self).__init__(
+        super(RandomForestEmpiricalRegressor, self).__init__(
             base_estimator=DecisionTreeEmpiricalRegressor(),
             n_estimators=n_estimators,
             estimator_params=("criterion", "max_depth", "min_samples_split",
