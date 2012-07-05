@@ -36,6 +36,11 @@ REGRESSION = {
     "mse": _tree.MSE,
 }
 
+EMPIRICAL_REGRESSION = {
+    "mse": _tree.MSE,
+    "frobenius": _tree.FROBENIUS,
+}
+
 
 def export_graphviz(decision_tree, out_file=None, feature_names=None):
     """Export a decision tree in DOT format.
@@ -463,17 +468,23 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         n_samples, self.n_features_ = X.shape
 
         is_classification = isinstance(self, ClassifierMixin)
+        is_regression = isinstance(self, RegressorMixin)
 
         if is_classification:
             self.classes_ = np.unique(y)
             self.n_classes_ = self.classes_.shape[0]
             criterion = CLASSIFICATION[self.criterion](self.n_classes_)
             y = np.searchsorted(self.classes_, y)
-
-        else:
+        elif is_regression:
             self.classes_ = None
             self.n_classes_ = 1
             criterion = REGRESSION[self.criterion]()
+        else:
+            # Empirical regression
+            self.classes_ = None
+            self.n_classes_ = 1
+            criterion = EMPIRICAL_REGRESSION[self.criterion]()
+
 
         y = np.ascontiguousarray(y, dtype=DTYPE)
 
@@ -844,7 +855,7 @@ class DecisionTreeRegressor(BaseDecisionTree, RegressorMixin):
 
 
 class DecisionTreeEmpiricalRegressor(BaseDecisionTree, EmpiricalRegressorMixin):
-    def __init__(self, criterion="mse", #TODO: fixme
+    def __init__(self, criterion="frobenius",
                        max_depth=None,
                        min_samples_split=1,
                        min_samples_leaf=1,
