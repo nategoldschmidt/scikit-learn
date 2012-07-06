@@ -440,6 +440,7 @@ class ForestRegressor(BaseForest, RegressorMixin):
         y: array of shape = [n_samples]
             The predicted values.
         """
+        #FIXME: implement in parallel, as in master branch
 
         results = []
 

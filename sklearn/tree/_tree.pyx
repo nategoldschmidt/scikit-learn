@@ -242,6 +242,8 @@ cdef class Entropy(ClassificationCriterion):
         return e1 + e2
 
 
+# FIXME: not faster than regular python, because dims not specified.
+# Write a templated version for scalars, 1d, 2d, and 3d responses.
 cdef class RegressionCriterion(Criterion):
     """Abstract criterion for regression. Computes variance of the
        target values left and right of the split point.
