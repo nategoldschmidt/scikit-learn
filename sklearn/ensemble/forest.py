@@ -519,7 +519,6 @@ class ForestEmpiricalRegressor(BaseForest, EmpiricalRegressorMixin):
             total_count = sum(counts)
             response = sum([r * (float(c) / total_count) for r, c in zip(responses, counts)])
             results.append(response)
-        import pdb; pdb.set_trace()
         return np.array(results)
 
 

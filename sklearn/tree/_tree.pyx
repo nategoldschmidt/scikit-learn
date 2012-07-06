@@ -406,7 +406,7 @@ cdef class EmpiricalCriterion(Criterion):
     cdef np.ndarray responses
     cdef int n_samples
     cdef int n_total_samples
-    cdef double value_init
+    cdef np.ndarray value_init
     cdef BOOL_t *sample_mask
     cdef object left
     cdef object right
@@ -418,7 +418,7 @@ cdef class EmpiricalCriterion(Criterion):
         self.right = set()
         self.n_samples = 0
         self.n_total_samples = 0
-        self.value_init = 0
+        self.value_init = np.array(0)
         self.sample_mask = NULL
 
 
@@ -430,7 +430,7 @@ cdef class EmpiricalCriterion(Criterion):
         self.sample_mask = sample_mask
         self.n_samples = n_samples
         self.n_total_samples = n_total_samples
-        self.value_init = 0
+        self.value_init = np.zeros(y[0].shape, dtype=y.dtype)
         for i in range(n_total_samples):
             if sample_mask[i] == False:
                 continue
@@ -629,7 +629,7 @@ cdef int smallest_sample_larger_than(int sample_idx, DTYPE_t *X_i,
 
 
 def _find_best_split(np.ndarray[DTYPE_t, ndim=2, mode="fortran"] X,
-                     np.ndarray[DTYPE_t, ndim=1, mode="c"] y,
+                     np.ndarray y,
                      np.ndarray[np.int32_t, ndim=2, mode="fortran"] X_argsorted,
                      np.ndarray sample_mask,
                      int n_samples,
