@@ -1,3 +1,5 @@
+from __future__ import division
+
 import sys
 import _tree
 import numpy as np
@@ -49,7 +51,7 @@ class EmpiricalCriterion(_tree.Criterion):
 
     def init_value(self):
         """Return all responses at this node."""
-        return [r for r, m in zip(self.responses, self.sample_mask) if m]
+        return sum([r / self.n_samples for r, m in zip(self.responses, self.sample_mask) if m])
 
 
 class Euclidean(EmpiricalCriterion):

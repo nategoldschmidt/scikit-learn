@@ -171,7 +171,10 @@ class Tree(object):
     LEAF = -1
     UNDEFINED = -2
 
-    def __init__(self, n_classes, n_features, capacity=3):
+    def __init__(self, n_classes, n_features, capacity=3, ydims=None):
+        if ydims is None:
+            ydims = (1,)
+
         self.n_classes = n_classes
         self.n_features = n_features
 
@@ -184,10 +187,11 @@ class Tree(object):
         self.feature.fill(Tree.UNDEFINED)
 
         self.threshold = np.empty((capacity,), dtype=np.float64)
-        if isinstance(self, EmpiricalTree):
-            self.value = {}
-        else:
+        if isinstance(self, ClassifierMixin):
             self.value = np.empty((capacity, n_classes), dtype=np.float64)
+        else:
+            self.value = np.empty((capacity,) + ydims, dtype=np.float64)
+
 
         self.best_error = np.empty((capacity,), dtype=np.float32)
         self.init_error = np.empty((capacity,), dtype=np.float32)
@@ -204,8 +208,7 @@ class Tree(object):
         self.children.resize((capacity, 2), refcheck=False)
         self.feature.resize((capacity,), refcheck=False)
         self.threshold.resize((capacity,), refcheck=False)
-        if not isinstance(self, EmpiricalTree):
-            self.value.resize((capacity, self.value.shape[1]), refcheck=False)
+        self.value.resize((capacity,) + self.value.shape[1:], refcheck=False)
         self.best_error.resize((capacity,), refcheck=False)
         self.init_error.resize((capacity,), refcheck=False)
         self.n_samples.resize((capacity,), refcheck=False)
@@ -294,12 +297,8 @@ class Tree(object):
             # Current node is leaf
             if feature == -1:
                 value = criterion.init_value()
-                if isinstance(self, EmpiricalTree):
-                    self._add_leaf(parent, is_left_child, value,
-                                   init_error, n_node_samples)
-                else:
-                    self._add_leaf(parent, is_left_child, value,
-                                   init_error, n_node_samples)
+                self._add_leaf(parent, is_left_child, value,
+                               init_error, n_node_samples)
 
 
             # Current node is internal node (= split node)
@@ -423,6 +422,18 @@ class Tree(object):
 
 
 class EmpiricalTree(Tree):
+
+    def _predict(self, x):
+        node_id = 0
+        # While node_id not a leaf
+        while self.children[node_id, 0] != -1 and self.children[node_id, 1] != -1:
+            if x[self.feature[node_id]] <= self.threshold[node_id]:
+                node_id = self.children[node_id, 0]
+            else:
+                node_id = self.children[node_id, 1]
+        return self.value[node_id], self.n_samples[node_id]
+
+
     def predict(self, X, return_number=False):
         """
         Returns the average of the responses stored at the reached
@@ -434,22 +445,11 @@ class EmpiricalTree(Tree):
 
 
         """
-        i = 0
-        n = X.shape[0]
-        node_id = 0
-        for i in range(n):
-            node_id = 0
-            # While node_id not a leaf
-            while self.children[node_id, 0] != -1 and self.children[node_id, 1] != -1:
-                if X[i, self.feature[node_id]] <= self.threshold[node_id]:
-                    node_id = self.children[node_id, 0]
-                else:
-                    node_id = self.children[node_id, 1]
-            n_samples = self.n_samples[node_id]
-            result = sum([v / n_samples for v in self.value[node_id]])
+        result = [self._predict(x) for x in X]
+        preds, counts = zip(*result)
         if return_number:
-            return result, n_samples
-        return result
+            return preds, counts
+        return preds
 
 
 class BaseDecisionTree(BaseEstimator, SelectorMixin):
@@ -577,7 +577,7 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         # Build tree
 
         if isinstance(self, EmpiricalRegressorMixin):
-            self.tree_ = EmpiricalTree(self.n_classes_, self.n_features_)
+            self.tree_ = EmpiricalTree(self.n_classes_, self.n_features_, ydims=y.shape)
         else:
             self.tree_ = Tree(self.n_classes_, self.n_features_)
         self.tree_.build(X, y, criterion, max_depth,

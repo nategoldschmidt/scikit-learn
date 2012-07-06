@@ -517,7 +517,7 @@ class ForestEmpiricalRegressor(BaseForest, EmpiricalRegressorMixin):
             total = sum(counts)
             pred = sum([(float(c) / total) * r for r, c in zip(responses, counts)])
             results.append(pred)
-        return results
+        return np.array(results)
 
 
 
