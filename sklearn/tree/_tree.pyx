@@ -401,6 +401,105 @@ cdef class MSE(RegressionCriterion):
         return self.var_left + self.var_right
 
 
+cdef class EmpiricalCriterion(Criterion):
+
+    cdef np.ndarray responses
+    cdef int n_samples
+    cdef int n_total_samples
+    cdef double value_init
+    cdef BOOL_t *sample_mask
+    cdef object left
+    cdef object right
+
+
+    def __init__(self):
+        self.responses = np.array(0)
+        self.left = set()
+        self.right = set()
+        self.n_samples = 0
+        self.n_total_samples = 0
+        self.value_init = 0
+        self.sample_mask = NULL
+
+
+    cdef void init(self, np.ndarray y, BOOL_t *sample_mask, int n_samples,
+                   int n_total_samples):
+        """Initialise the criterion class for new split point."""
+        assert len(y) == n_total_samples
+        self.responses = y
+        self.sample_mask = sample_mask
+        self.n_samples = n_samples
+        self.n_total_samples = n_total_samples
+        self.value_init = 0
+        for i in range(n_total_samples):
+            if sample_mask[i] == False:
+                continue
+            self.value_init += y[i] / n_samples
+        self.reset()
+
+
+    cdef int update(self, int a, int b, np.ndarray y, int *X_argsorted_i,
+                    BOOL_t *sample_mask):
+        """Update the criteria for each value in interval [a,b) (where a and b
+           are indices in `X_argsorted_i`)."""
+        self.responses = y
+        for i in range(a, b):
+            s = X_argsorted_i[i]
+            if not sample_mask[s]:
+                continue
+            self.left.add(s)
+            self.right.remove(s)
+        return len(self.left)
+
+
+    cdef void reset(self):
+        """Reset the criterion for a new feature index."""
+        self.left = set([])
+        right = []
+        for i in range(self.n_total_samples):
+            if self.sample_mask[i] == False:
+                continue
+            right.append(i)
+        self.right = set(right)
+
+
+    cpdef np.ndarray init_value(self):
+        """Return all responses at this node."""
+        return np.asarray(self.value_init)
+
+
+cdef class Euclidean(EmpiricalCriterion):
+    """
+
+    The average of the squared Euclidean distance between each element
+    and the mean of all elements.
+
+    For scalar responses, this should be the same as MSE.
+
+    For multivariate responses, this flattens them to vectors, then
+    computes the average distance to the mean.
+
+    """
+
+    cdef double h(self, s):
+        s = [self.responses[i] for i in s]
+        if len(s) == 0:
+            return 0
+        sum_s = sum(s)
+        n_s = len(s)
+        mean = np.ravel(sum_s / n_s)
+        dist = np.mean([np.linalg.norm(np.ravel(r) - mean) ** 2 for r in s])
+        return dist
+
+
+    cdef double eval(self):
+        """Evaluate the criteria (aka the split error)."""
+        dist_r = self.h(self.right)
+        dist_l = self.h(self.left)
+        return dist_r + dist_l
+
+
+
 ################################################################################
 # Tree util functions
 #

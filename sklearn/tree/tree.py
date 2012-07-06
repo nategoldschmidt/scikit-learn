@@ -39,7 +39,7 @@ REGRESSION = {
 }
 
 EMPIRICAL_REGRESSION = {
-    "euclidean": empirical.Euclidean,
+    "euclidean": _tree.Euclidean,
 }
 
 
@@ -287,12 +287,8 @@ class Tree(object):
                     min_samples_leaf, max_features, criterion, random_state)
             else:
                 feature = -1
-                if isinstance(self, EmpiricalTree):
-                    init_error = empirical.error_at_leaf(y, sample_mask, criterion,
-                                                         n_node_samples)
-                else:
-                    init_error = _tree._error_at_leaf(y, sample_mask, criterion,
-                                                      n_node_samples)
+                init_error = _tree._error_at_leaf(y, sample_mask, criterion,
+                                                  n_node_samples)
 
             # Current node is leaf
             if feature == -1:
@@ -925,7 +921,6 @@ class DecisionTreeEmpiricalRegressor(BaseDecisionTree, EmpiricalRegressorMixin):
             max_features,
             compute_importances,
             random_state)
-        self.find_split_ = empirical.find_best_split
 
 
 class ExtraTreeClassifier(DecisionTreeClassifier):
