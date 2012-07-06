@@ -505,20 +505,22 @@ class ForestEmpiricalRegressor(BaseForest, EmpiricalRegressorMixin):
         y: array of shape = [n_samples]
             The predicted values.
         """
+
         results = []
+
         for x in X:
-            indiv_preds = []
+            total_count = 0
             responses = []
             counts = []
-            for tree in self.estimators_:
-                r, c = tree.predict(x, True)
-                responses.append(r)
-                counts.append(c)
-            total = sum(counts)
-            pred = sum([(float(c) / total) * r for r, c in zip(responses, counts)])
-            results.append(pred)
+            for t in self.estimators_:
+                resp, count = t.predict(x, True)
+                responses.append(resp[0]) #FIXME: hacky
+                counts.append(count)
+            total_count = sum(counts)
+            response = sum([r * (float(c) / total_count) for r, c in zip(responses, counts)])
+            results.append(response)
+        import pdb; pdb.set_trace()
         return np.array(results)
-
 
 
 class RandomForestClassifier(ForestClassifier):

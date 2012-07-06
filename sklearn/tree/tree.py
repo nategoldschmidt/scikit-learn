@@ -443,11 +443,12 @@ class EmpiricalTree(Tree):
         at the leaf node. This is so that an unbiased global average
         can be computed by forests.
 
-
         """
         result = [self._predict(x) for x in X]
         preds, counts = zip(*result)
+        preds = np.array(preds)
         if return_number:
+            counts = np.array(counts)
             return preds, counts
         return preds
 
@@ -577,7 +578,7 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         # Build tree
 
         if isinstance(self, EmpiricalRegressorMixin):
-            self.tree_ = EmpiricalTree(self.n_classes_, self.n_features_, ydims=y.shape)
+            self.tree_ = EmpiricalTree(self.n_classes_, self.n_features_, ydims=y.shape[1:])
         else:
             self.tree_ = Tree(self.n_classes_, self.n_features_)
         self.tree_.build(X, y, criterion, max_depth,

@@ -9,9 +9,10 @@ class EmpiricalCriterion(_tree.Criterion):
     def __init__(self):
         self.responses = None
         self.sample_mask = None
-        self.responses_l = None
-        self.responses_r = None
+        self.left = None
+        self.right = None
         self.n_samples = 0
+        self.value = 0
 
 
     def init(self, y, sample_mask, n_samples,
@@ -22,6 +23,7 @@ class EmpiricalCriterion(_tree.Criterion):
         self.responses = y
         self.sample_mask = sample_mask
         self.n_samples = n_samples
+        self.value = sum([r / n_samples for r, m in zip(y, sample_mask) if m])
         self.reset()
 
 
@@ -29,25 +31,26 @@ class EmpiricalCriterion(_tree.Criterion):
                     sample_mask):
         """Update the criteria for each value in interval [a,b) (where a and b
            are indices in `X_argsorted_i`)."""
-
+        self.responses = y
+        self.sample_mask = sample_mask
         for i in range(a, b):
             s = X_argsorted_i[i]
             if not self.sample_mask[s]:
                 continue
-            self.responses_l.add(s)
-            self.responses_r.remove(s)
-        return len(self.responses_l)
+            self.left.add(s)
+            self.right.remove(s)
+        return len(self.left)
 
 
     def reset(self):
         """Reset the criterion for a new feature index."""
-        self.responses_l = set([])
-        self.responses_r = set([i for i, m in enumerate(self.sample_mask) if m])
+        self.left = set([])
+        self.right = set([i for i, m in enumerate(self.sample_mask) if m])
 
 
     def init_value(self):
         """Return all responses at this node."""
-        return sum([r / self.n_samples for r, m in zip(self.responses, self.sample_mask) if m])
+        return self.value
 
 
 class Euclidean(EmpiricalCriterion):
@@ -72,8 +75,8 @@ class Euclidean(EmpiricalCriterion):
 
     def eval(self):
         """Evaluate the criteria (aka the split error)."""
-        dist_r = self._h(self.responses_r)
-        dist_l = self._h(self.responses_l)
+        dist_r = self._h(self.right)
+        dist_l = self._h(self.left)
         return dist_r + dist_l
 
 
