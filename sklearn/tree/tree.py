@@ -517,7 +517,10 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         elif isinstance(self, EmpiricalRegressorMixin):
             self.classes_ = None
             self.n_classes_ = 1
-            criterion = REGRESSION[self.criterion](y.shape[1:])
+            shape = y.shape[1:]
+            if len(shape) == 0:
+                shape = (1,)
+            criterion = REGRESSION[self.criterion](shape)
         else:
             raise Exception('not an instance of any supported mixin')
 

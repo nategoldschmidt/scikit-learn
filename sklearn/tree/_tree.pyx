@@ -333,10 +333,10 @@ cdef class RegressionCriterion(Criterion):
         for j from 0 <= j < n_total_samples:
             if sample_mask[j] == 0:
                 continue
-            self.sq_sum_init += (y[j] * y[j])
-            self.mean_init += y[j]
+            self.sq_sum_init += np.atleast_1d(y[j] * y[j])
+            self.mean_init += np.atleast_1d(y[j])
 
-        self.mean_init = self.mean_init / <double>(self.n_samples)
+        self.mean_init = np.atleast_1d(self.mean_init / <double>(self.n_samples))
 
         self.reset()
 
@@ -368,23 +368,23 @@ cdef class RegressionCriterion(Criterion):
             j = X_argsorted_i[idx]
             if sample_mask[j] == 0:
                 continue
-            y_idx = y[j]
-            self.sq_sum_left = self.sq_sum_left + (y_idx * y_idx)
-            self.sq_sum_right = self.sq_sum_right - (y_idx * y_idx)
+            y_idx = np.atleast_1d(y[j])
+            self.sq_sum_left = np.atleast_1d(self.sq_sum_left + (y_idx * y_idx))
+            self.sq_sum_right = np.atleast_1d(self.sq_sum_right - (y_idx * y_idx))
 
-            self.mean_left = (self.n_left * self.mean_left + y_idx) / \
-                <double>(self.n_left + 1)
-            self.mean_right = ((self.n_samples - self.n_left) * \
+            self.mean_left = np.atleast_1d((self.n_left * self.mean_left + y_idx) / \
+                <double>(self.n_left + 1))
+            self.mean_right = np.atleast_1d(((self.n_samples - self.n_left) * \
                 self.mean_right - y_idx) / \
-                <double>(self.n_samples - self.n_left - 1)
+                <double>(self.n_samples - self.n_left - 1))
 
             self.n_right -= 1
             self.n_left += 1
 
-            self.var_left = self.sq_sum_left - \
-                self.n_left * (self.mean_left * self.mean_left)
-            self.var_right = self.sq_sum_right - \
-                self.n_right * (self.mean_right * self.mean_right)
+            self.var_left = np.atleast_1d(self.sq_sum_left - \
+                self.n_left * (self.mean_left * self.mean_left))
+            self.var_right = np.atleast_1d(self.sq_sum_right - \
+                self.n_right * (self.mean_right * self.mean_right))
 
         return self.n_left
 
