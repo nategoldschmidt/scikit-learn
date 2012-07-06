@@ -34,15 +34,15 @@ class EmpiricalCriterion(_tree.Criterion):
             s = X_argsorted_i[i]
             if not self.sample_mask[s]:
                 continue
-            self.responses_l.append(s)
+            self.responses_l.add(s)
             self.responses_r.remove(s)
         return len(self.responses_l)
 
 
     def reset(self):
         """Reset the criterion for a new feature index."""
-        self.responses_l = []
-        self.responses_r = [i for i, m in enumerate(self.sample_mask) if m]
+        self.responses_l = set([])
+        self.responses_r = set([i for i, m in enumerate(self.sample_mask) if m])
 
 
     def init_value(self):
