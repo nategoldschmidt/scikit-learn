@@ -6,7 +6,6 @@ classification and regression.
 from .base import BaseEnsemble
 from .forest import RandomForestClassifier
 from .forest import RandomForestRegressor
-from .forest import RandomForestEmpiricalRegressor
 from .forest import ExtraTreesClassifier
 from .forest import ExtraTreesRegressor
 

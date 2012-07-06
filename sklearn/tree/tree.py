@@ -14,7 +14,7 @@ from __future__ import division
 import numpy as np
 from abc import ABCMeta, abstractmethod
 
-from ..base import BaseEstimator, ClassifierMixin, RegressorMixin, EmpiricalRegressorMixin
+from ..base import BaseEstimator, ClassifierMixin, RegressorMixin
 from ..feature_selection.selector_mixin import SelectorMixin
 from ..utils import array2d, check_random_state
 
@@ -22,7 +22,6 @@ from . import _tree
 
 __all__ = ["DecisionTreeClassifier",
            "DecisionTreeRegressor",
-           "DecisionTreeEmpiricalRegressor",
            "ExtraTreeClassifier",
            "ExtraTreeRegressor"]
 
@@ -412,37 +411,6 @@ class Tree(object):
         return importances
 
 
-class EmpiricalTree(Tree):
-
-    def _predict(self, x):
-        node_id = 0
-        # While node_id not a leaf
-        while self.children[node_id, 0] != -1 and self.children[node_id, 1] != -1:
-            if x[self.feature[node_id]] <= self.threshold[node_id]:
-                node_id = self.children[node_id, 0]
-            else:
-                node_id = self.children[node_id, 1]
-        return self.value[node_id], self.n_samples[node_id]
-
-
-    def predict(self, X, return_number=False):
-        """
-        Returns the average of the responses stored at the reached
-        leaf node.
-
-        If return_number is True, also returns the number of responses
-        at the leaf node. This is so that an unbiased global average
-        can be computed by forests.
-
-        """
-        result = [self._predict(x) for x in X]
-        preds, counts = zip(*result)
-        preds = np.array(preds)
-        if return_number:
-            counts = np.array(counts)
-            return preds, counts
-        return preds
-
 
 class BaseDecisionTree(BaseEstimator, SelectorMixin):
     """Base class for decision trees.
@@ -513,10 +481,6 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         elif isinstance(self, RegressorMixin):
             self.classes_ = None
             self.n_classes_ = 1
-            criterion = REGRESSION[self.criterion]()
-        elif isinstance(self, EmpiricalRegressorMixin):
-            self.classes_ = None
-            self.n_classes_ = 1
             shape = y.shape[1:]
             if len(shape) == 0:
                 shape = (1,)
@@ -571,10 +535,12 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
 
         # Build tree
 
-        if isinstance(self, EmpiricalRegressorMixin):
-            self.tree_ = EmpiricalTree(self.n_classes_, self.n_features_, ydims=y.shape[1:])
-        else:
-            self.tree_ = Tree(self.n_classes_, self.n_features_)
+        shape = None
+        if isinstance(self, RegressorMixin):
+            shape = y.shape[1:]
+            if len(shape) == 0:
+                shape = (1,)
+        self.tree_ = Tree(self.n_classes_, self.n_features_, ydims=shape)
         self.tree_.build(X, y, criterion, max_depth,
                 self.min_samples_split, self.min_samples_leaf,
                 self.min_density, max_features, self.random_state,
@@ -900,25 +866,35 @@ class DecisionTreeRegressor(BaseDecisionTree, RegressorMixin):
                                                     compute_importances,
                                                     random_state)
 
+    def _predict(self, x):
+        node_id = 0
+        # While node_id not a leaf
+        while self.tree_.children[node_id, 0] != -1 and self.tree_.children[node_id, 1] != -1:
+            if x[self.tree_.feature[node_id]] <= self.tree_.threshold[node_id]:
+                node_id = self.tree_.children[node_id, 0]
+            else:
+                node_id = self.tree_.children[node_id, 1]
+        return self.tree_.value[node_id], self.tree_.n_samples[node_id]
 
-class DecisionTreeEmpiricalRegressor(BaseDecisionTree, EmpiricalRegressorMixin):
-    def __init__(self, criterion="mse",
-                       max_depth=None,
-                       min_samples_split=1,
-                       min_samples_leaf=1,
-                       min_density=0.1,
-                       max_features=None,
-                       compute_importances=False,
-                       random_state=None):
-        super(DecisionTreeEmpiricalRegressor, self).__init__(
-            criterion,
-            max_depth,
-            min_samples_split,
-            min_samples_leaf,
-            min_density,
-            max_features,
-            compute_importances,
-            random_state)
+
+    def predict(self, X, return_number=False):
+        """
+        Returns the average of the responses stored at the reached
+        leaf node.
+
+        If return_number is True, also returns the number of responses
+        at the leaf node. This is so that an unbiased global average
+        can be computed by forests.
+
+        """
+        X = np.atleast_2d(X)
+        result = [self._predict(x) for x in X]
+        preds, counts = zip(*result)
+        preds = np.array(preds)
+        if return_number:
+            counts = np.array(counts)
+            return preds, counts
+        return preds
 
 
 class ExtraTreeClassifier(DecisionTreeClassifier):

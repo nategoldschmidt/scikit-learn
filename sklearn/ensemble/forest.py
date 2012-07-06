@@ -37,11 +37,10 @@ import itertools
 import numpy as np
 from abc import ABCMeta, abstractmethod
 
-from ..base import ClassifierMixin, RegressorMixin, EmpiricalRegressorMixin
+from ..base import ClassifierMixin, RegressorMixin
 from ..externals.joblib import Parallel, delayed, cpu_count
 from ..feature_selection.selector_mixin import SelectorMixin
 from ..tree import DecisionTreeClassifier, DecisionTreeRegressor, \
-                   DecisionTreeEmpiricalRegressor, \
                    ExtraTreeClassifier, ExtraTreeRegressor
 from ..utils import check_random_state
 from ..metrics import r2_score
@@ -50,7 +49,6 @@ from .base import BaseEnsemble
 
 __all__ = ["RandomForestClassifier",
            "RandomForestRegressor",
-           "RandomForestEmpiricalRegressor",
            "ExtraTreesClassifier",
            "ExtraTreesRegressor"]
 
@@ -430,69 +428,6 @@ class ForestRegressor(BaseForest, RegressorMixin):
         """Predict regression target for X.
 
         The predicted regression target of an input sample is computed as the
-        mean predicted regression targets of the trees in the forest.
-
-        Parameters
-        ----------
-        X : array-like of shape = [n_samples, n_features]
-            The input samples.
-
-        Returns
-        -------
-        y: array of shape = [n_samples]
-            The predicted values.
-        """
-        # Check data
-        X = np.atleast_2d(X)
-
-        # Assign chunk of trees to jobs
-        n_jobs, n_trees, starts = _partition_trees(self)
-
-        # Parallel loop
-        all_y_hat = Parallel(n_jobs=n_jobs)(
-            delayed(_parallel_predict_regression)(
-                self.estimators_[starts[i]:starts[i + 1]], X)
-            for i in xrange(n_jobs))
-
-        # Reduce
-        y_hat = sum(all_y_hat) / self.n_estimators
-
-        return y_hat
-
-
-class ForestEmpiricalRegressor(BaseForest, EmpiricalRegressorMixin):
-    """Base class for forest of trees-based empirical regressors.
-
-    Warning: This class should not be used directly. Use derived classes
-    instead.
-    """
-    __metaclass__ = ABCMeta
-
-    @abstractmethod
-    def __init__(self, base_estimator,
-                       n_estimators=10,
-                       estimator_params=[],
-                       bootstrap=False,
-                       compute_importances=False,
-                       oob_score=False,
-                       n_jobs=1,
-                       random_state=None,
-                       verbose=0):
-        super(ForestEmpiricalRegressor, self).__init__(
-            base_estimator,
-            n_estimators=n_estimators,
-            estimator_params=estimator_params,
-            bootstrap=bootstrap,
-            compute_importances=compute_importances,
-            oob_score=oob_score,
-            n_jobs=n_jobs,
-            random_state=random_state,
-            verbose=verbose)
-
-    def predict(self, X):
-        """Predict regression target for X.
-
-        The predicted regression target of an input sample is computed as the
         mean of all responses stored at leaves of the trees in the forest.
 
         Parameters
@@ -779,41 +714,6 @@ class RandomForestRegressor(ForestRegressor):
                        verbose=0):
         super(RandomForestRegressor, self).__init__(
             base_estimator=DecisionTreeRegressor(),
-            n_estimators=n_estimators,
-            estimator_params=("criterion", "max_depth", "min_samples_split",
-                "min_samples_leaf", "min_density", "max_features",
-                "random_state"),
-            bootstrap=bootstrap,
-            compute_importances=compute_importances,
-            oob_score=oob_score,
-            n_jobs=n_jobs,
-            random_state=random_state,
-            verbose=verbose)
-
-        self.criterion = criterion
-        self.max_depth = max_depth
-        self.min_samples_split = min_samples_split
-        self.min_samples_leaf = min_samples_leaf
-        self.min_density = min_density
-        self.max_features = max_features
-
-
-class RandomForestEmpiricalRegressor(ForestEmpiricalRegressor):
-    def __init__(self, n_estimators=10,
-                 criterion="mse",
-                 max_depth=None,
-                 min_samples_split=1,
-                 min_samples_leaf=1,
-                 min_density=0.1,
-                 max_features="auto",
-                 bootstrap=True,
-                 compute_importances=False,
-                 oob_score=False,
-                 n_jobs=1,
-                 random_state=None,
-                 verbose=0):
-        super(RandomForestEmpiricalRegressor, self).__init__(
-            base_estimator=DecisionTreeEmpiricalRegressor(),
             n_estimators=n_estimators,
             estimator_params=("criterion", "max_depth", "min_samples_split",
                 "min_samples_leaf", "min_density", "max_features",
