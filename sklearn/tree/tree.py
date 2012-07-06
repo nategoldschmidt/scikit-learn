@@ -14,12 +14,11 @@ from __future__ import division
 import numpy as np
 from abc import ABCMeta, abstractmethod
 
-from ..base import BaseEstimator, ClassifierMixin, RegressorMixin, EmpiricalRegressorMixin
+from ..base import BaseEstimator, ClassifierMixin, RegressorMixin
 from ..feature_selection.selector_mixin import SelectorMixin
 from ..utils import array2d, check_random_state
 
 from . import _tree
-from . import empirical
 
 __all__ = ["DecisionTreeClassifier",
            "DecisionTreeRegressor",
