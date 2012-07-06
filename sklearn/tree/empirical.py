@@ -55,6 +55,10 @@ class EmpiricalCriterion(_tree.Criterion):
 
 class Euclidean(EmpiricalCriterion):
     """
+
+    The average of the squared Euclidean distance between each element
+    and the mean of all elements.
+
     For scalar responses, this should be the same as MSE.
 
     For multivariate responses, this flattens them to vectors, then
@@ -69,7 +73,7 @@ class Euclidean(EmpiricalCriterion):
         sum_s = sum(s)
         n_s = len(s)
         mean = np.ravel(sum_s / n_s)
-        dist = np.mean([np.linalg.norm(np.ravel(r) - mean) for r in s])
+        dist = np.mean([np.linalg.norm(np.ravel(r) - mean) ** 2 for r in s])
         return dist
 
 
