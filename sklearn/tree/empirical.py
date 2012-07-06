@@ -29,24 +29,20 @@ class EmpiricalCriterion(_tree.Criterion):
                     sample_mask):
         """Update the criteria for each value in interval [a,b) (where a and b
            are indices in `X_argsorted_i`)."""
-        self.responses_r = []
-        for i in range(len(y)):
+
+        for i in range(a, b):
             s = X_argsorted_i[i]
-            if not sample_mask[s]:
+            if not self.sample_mask[s]:
                 continue
-            if i < b:
-                self.responses_l.append(y[s])
-            else:
-                self.responses_r.append(y[s])
+            self.responses_l.append(s)
+            self.responses_r.remove(s)
         return len(self.responses_l)
 
 
     def reset(self):
         """Reset the criterion for a new feature index."""
         self.responses_l = []
-        self.responses_r = []
-        for r in self.responses:
-            self.responses_r.append(r)
+        self.responses_r = [i for i, m in enumerate(self.sample_mask) if m]
 
 
     def init_value(self):
@@ -64,6 +60,7 @@ class Euclidean(EmpiricalCriterion):
     """
 
     def _h(self, s):
+        s = [self.responses[i] for i in s]
         if len(s) == 0:
             return 0
         sum_s = sum(s)
