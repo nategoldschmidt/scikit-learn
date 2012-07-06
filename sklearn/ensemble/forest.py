@@ -800,7 +800,7 @@ class RandomForestRegressor(ForestRegressor):
 
 class RandomForestEmpiricalRegressor(ForestEmpiricalRegressor):
     def __init__(self, n_estimators=10,
-                 criterion="euclidean",
+                 criterion="mse",
                  max_depth=None,
                  min_samples_split=1,
                  min_samples_leaf=1,

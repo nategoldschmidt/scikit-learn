@@ -37,10 +37,6 @@ REGRESSION = {
     "mse": _tree.MSE,
 }
 
-EMPIRICAL_REGRESSION = {
-    "euclidean": _tree.Euclidean,
-}
-
 
 def export_graphviz(decision_tree, out_file=None, feature_names=None):
     """Export a decision tree in DOT format.
@@ -521,7 +517,7 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         elif isinstance(self, EmpiricalRegressorMixin):
             self.classes_ = None
             self.n_classes_ = 1
-            criterion = EMPIRICAL_REGRESSION[self.criterion]()
+            criterion = REGRESSION[self.criterion](y.shape[1:])
         else:
             raise Exception('not an instance of any supported mixin')
 
@@ -903,7 +899,7 @@ class DecisionTreeRegressor(BaseDecisionTree, RegressorMixin):
 
 
 class DecisionTreeEmpiricalRegressor(BaseDecisionTree, EmpiricalRegressorMixin):
-    def __init__(self, criterion="euclidean",
+    def __init__(self, criterion="mse",
                        max_depth=None,
                        min_samples_split=1,
                        min_samples_leaf=1,

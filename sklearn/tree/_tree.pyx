@@ -285,43 +285,48 @@ cdef class RegressionCriterion(Criterion):
     cdef int n_right
     cdef int n_left
 
-    cdef double mean_left
-    cdef double mean_right
-    cdef double mean_init
+    cdef np.ndarray mean_left
+    cdef np.ndarray mean_right
+    cdef np.ndarray mean_init
 
-    cdef double sq_sum_right
-    cdef double sq_sum_left
-    cdef double sq_sum_init
+    cdef np.ndarray sq_sum_right
+    cdef np.ndarray sq_sum_left
+    cdef np.ndarray sq_sum_init
 
-    cdef double var_left
-    cdef double var_right
+    cdef np.ndarray var_left
+    cdef np.ndarray var_right
 
-    def __init__(self):
+    cdef tuple y_shape
+
+    def __init__(self, y_shape=None):
+        if y_shape is None:
+            y_shape = (1,)
+        self.y_shape = y_shape
         self.n_samples = 0
         self.n_left = 0
         self.n_right = 0
-        self.mean_left = 0.0
-        self.mean_right = 0.0
-        self.mean_init = 0.0
-        self.sq_sum_right = 0.0
-        self.sq_sum_left = 0.0
-        self.sq_sum_init = 0.0
-        self.var_left = 0.0
-        self.var_right = 0.0
+        self.mean_left = np.asarray(0.0)
+        self.mean_right = np.asarray(0.0)
+        self.mean_init = np.asarray(0.0)
+        self.sq_sum_right = np.asarray(0.0)
+        self.sq_sum_left = np.asarray(0.0)
+        self.sq_sum_init = np.asarray(0.0)
+        self.var_left = np.asarray(0.0)
+        self.var_right = np.asarray(0.0)
 
     cdef void init(self, np.ndarray y, BOOL_t *sample_mask, int n_samples,
                    int n_total_samples):
         """Initialise the criterion class; assume all samples
            are in the right branch and store the mean and squared
            sum in `self.mean_init` and `self.sq_sum_init`. """
-        self.mean_left = 0.0
-        self.mean_right = 0.0
-        self.mean_init = 0.0
-        self.sq_sum_right = 0.0
-        self.sq_sum_left = 0.0
-        self.sq_sum_init = 0.0
-        self.var_left = 0.0
-        self.var_right = 0.0
+        self.mean_left = np.zeros(self.y_shape)
+        self.mean_right = np.zeros(self.y_shape)
+        self.mean_init = np.zeros(self.y_shape)
+        self.sq_sum_right = np.zeros(self.y_shape)
+        self.sq_sum_left = np.zeros(self.y_shape)
+        self.sq_sum_init = np.zeros(self.y_shape)
+        self.var_left = np.zeros(self.y_shape)
+        self.var_right = np.zeros(self.y_shape)
         self.n_samples = n_samples
 
         cdef int j = 0
@@ -331,7 +336,7 @@ cdef class RegressionCriterion(Criterion):
             self.sq_sum_init += (y[j] * y[j])
             self.mean_init += y[j]
 
-        self.mean_init = self.mean_init / self.n_samples
+        self.mean_init = self.mean_init / <double>(self.n_samples)
 
         self.reset()
 
@@ -345,10 +350,10 @@ cdef class RegressionCriterion(Criterion):
         self.n_right = self.n_samples
         self.n_left = 0
         self.mean_right = self.mean_init
-        self.mean_left = 0.0
+        self.mean_left = np.zeros(self.y_shape)
         self.sq_sum_right = self.sq_sum_init
-        self.sq_sum_left = 0.0
-        self.var_left = 0.0
+        self.sq_sum_left = np.zeros(self.y_shape)
+        self.var_left = np.zeros(self.y_shape)
         self.var_right = self.sq_sum_right - \
             self.n_samples * (self.mean_right * self.mean_right)
 
@@ -356,7 +361,7 @@ cdef class RegressionCriterion(Criterion):
                     BOOL_t *sample_mask):
         """Update the criteria for each value in interval [a,b) (where a and b
            are indices in `X_argsorted_i`)."""
-        cdef double y_idx = 0.0
+        cdef np.ndarray y_idx
         cdef int idx, j
         # post condition: all samples from [0:b) are on the left side
         for idx from a <= idx < b:
@@ -387,8 +392,7 @@ cdef class RegressionCriterion(Criterion):
         pass
 
     cpdef np.ndarray init_value(self):
-        ## TODO is calling np.asarray a performance issue?
-        return np.asarray(self.mean_init)
+        return self.mean_init
 
 
 cdef class MSE(RegressionCriterion):
@@ -398,106 +402,15 @@ cdef class MSE(RegressionCriterion):
     """
 
     cdef double eval(self):
-        return self.var_left + self.var_right
-
-
-cdef class EmpiricalCriterion(Criterion):
-
-    cdef np.ndarray responses
-    cdef int n_samples
-    cdef int n_total_samples
-    cdef np.ndarray value_init
-    cdef BOOL_t *sample_mask
-    cdef object left
-    cdef object right
-
-
-    def __init__(self):
-        self.responses = np.array(0)
-        self.left = set()
-        self.right = set()
-        self.n_samples = 0
-        self.n_total_samples = 0
-        self.value_init = np.array(0)
-        self.sample_mask = NULL
-
-
-    cdef void init(self, np.ndarray y, BOOL_t *sample_mask, int n_samples,
-                   int n_total_samples):
-        """Initialise the criterion class for new split point."""
-        assert len(y) == n_total_samples
-        self.responses = y
-        self.sample_mask = sample_mask
-        self.n_samples = n_samples
-        self.n_total_samples = n_total_samples
-        self.value_init = np.zeros(y[0].shape, dtype=y.dtype)
-        for i in range(n_total_samples):
-            if sample_mask[i] == False:
-                continue
-            self.value_init += y[i] / n_samples
-        self.reset()
-
-
-    cdef int update(self, int a, int b, np.ndarray y, int *X_argsorted_i,
-                    BOOL_t *sample_mask):
-        """Update the criteria for each value in interval [a,b) (where a and b
-           are indices in `X_argsorted_i`)."""
-        self.responses = y
-        for i in range(a, b):
-            s = X_argsorted_i[i]
-            if not sample_mask[s]:
-                continue
-            self.left.add(s)
-            self.right.remove(s)
-        return len(self.left)
-
-
-    cdef void reset(self):
-        """Reset the criterion for a new feature index."""
-        self.left = set([])
-        right = []
-        for i in range(self.n_total_samples):
-            if self.sample_mask[i] == False:
-                continue
-            right.append(i)
-        self.right = set(right)
-
-
-    cpdef np.ndarray init_value(self):
-        """Return all responses at this node."""
-        return np.asarray(self.value_init)
-
-
-cdef class Euclidean(EmpiricalCriterion):
-    """
-
-    The average of the squared Euclidean distance between each element
-    and the mean of all elements.
-
-    For scalar responses, this should be the same as MSE.
-
-    For multivariate responses, this flattens them to vectors, then
-    computes the average distance to the mean.
-
-    """
-
-    cdef double h(self, s):
-        s = [self.responses[i] for i in s]
-        if len(s) == 0:
-            return 0
-        sum_s = sum(s)
-        n_s = len(s)
-        mean = np.ravel(sum_s / n_s)
-        dist = np.mean([np.linalg.norm(np.ravel(r) - mean) ** 2 for r in s])
-        return dist
-
-
-    cdef double eval(self):
-        """Evaluate the criteria (aka the split error)."""
-        dist_r = self.h(self.right)
-        dist_l = self.h(self.left)
-        return dist_r + dist_l
-
+        if self.n_left == 0:
+            total_left = 0
+        else:
+            total_left = self.var_left.sum() / <double> self.n_left
+        if self.n_right == 0:
+            total_right = 0
+        else:
+            total_right = self.var_right.sum() / <double> self.n_right
+        return total_left + total_right
 
 
 ################################################################################
