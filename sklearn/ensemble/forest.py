@@ -41,6 +41,7 @@ from ..base import ClassifierMixin, RegressorMixin, EmpiricalRegressorMixin
 from ..externals.joblib import Parallel, delayed, cpu_count
 from ..feature_selection.selector_mixin import SelectorMixin
 from ..tree import DecisionTreeClassifier, DecisionTreeRegressor, \
+                   DecisionTreeEmpiricalRegressor, \
                    ExtraTreeClassifier, ExtraTreeRegressor
 from ..utils import check_random_state
 from ..metrics import r2_score
@@ -504,8 +505,20 @@ class ForestEmpiricalRegressor(BaseForest, EmpiricalRegressorMixin):
         y: array of shape = [n_samples]
             The predicted values.
         """
-        #FIXME
-        pass
+        results = []
+        for x in X:
+            indiv_preds = []
+            responses = []
+            counts = []
+            for tree in self.estimators_:
+                r, c = tree.predict(x, True)
+                responses.append(r)
+                counts.append(c)
+            total = sum(counts)
+            pred = sum([(float(c) / total) * r for r, c in zip(responses, counts)])
+            results.append(pred)
+        return results
+
 
 
 class RandomForestClassifier(ForestClassifier):
@@ -786,7 +799,7 @@ class RandomForestRegressor(ForestRegressor):
 
 class RandomForestEmpiricalRegressor(ForestEmpiricalRegressor):
     def __init__(self, n_estimators=10,
-                 criterion="frobenius",
+                 criterion="euclidean",
                  max_depth=None,
                  min_samples_split=1,
                  min_samples_leaf=1,

@@ -423,12 +423,20 @@ class Tree(object):
 
 
 class EmpiricalTree(Tree):
-    def predict(self, X):
+    def predict(self, X, return_number=False):
+        """
+        Returns the average of the responses stored at the reached
+        leaf node.
+
+        If return_number is True, also returns the number of responses
+        at the leaf node. This is so that an unbiased global average
+        can be computed by forests.
+
+
+        """
         i = 0
         n = X.shape[0]
         node_id = 0
-        results = []
-        n_results = []
         for i in range(n):
             node_id = 0
             # While node_id not a leaf
@@ -437,9 +445,11 @@ class EmpiricalTree(Tree):
                     node_id = self.children[node_id, 0]
                 else:
                     node_id = self.children[node_id, 1]
-            results.append(self.value[node_id])
-            n_results.append(self.n_samples[node_id])
-        return results, n_results
+            n_samples = self.n_samples[node_id]
+            result = sum([v / n_samples for v in self.value[node_id]])
+        if return_number:
+            return result, n_samples
+        return result
 
 
 class BaseDecisionTree(BaseEstimator, SelectorMixin):
@@ -582,7 +592,7 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
 
         return self
 
-    def predict(self, X):
+    def predict(self, X, return_number=False):
         """Predict class or regression target for X.
 
         For a classification model, the predicted class for each sample in X is
@@ -617,7 +627,7 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         elif isinstance(self, RegressorMixin):
             predictions = self.tree_.predict(X).ravel()
         elif isinstance(self, EmpiricalRegressorMixin):
-            predictions = self.tree_.predict(X)
+            predictions = self.tree_.predict(X, return_number)
         else:
             raise Exception('not an instance of any supported mixin')
 

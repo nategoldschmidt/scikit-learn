@@ -53,22 +53,29 @@ class EmpiricalCriterion(_tree.Criterion):
 
 
 class Euclidean(EmpiricalCriterion):
+    """
+    For scalar responses, this should be the same as MSE.
+
+    For multivariate responses, this flattens them to vectors, then
+    computes the average distance to the mean.
+
+    """
+
+    def _h(self, s):
+        if len(s) == 0:
+            return 0
+        sum_s = sum(s)
+        n_s = len(s)
+        mean = np.ravel(sum_s / n_s)
+        dist = np.mean([np.linalg.norm(np.ravel(r) - mean) ** 2 for r in s])
+        return dist
+
+
     def eval(self):
         """Evaluate the criteria (aka the split error)."""
-        sum_r = sum(self.responses_r)
-        n_r = len(self.responses_r)
-        mean_r = np.ravel(sum_r / n_r)
-        rdiff = n_r / self.n_samples * sum([np.linalg.norm(np.ravel(r) - mean_r) for r in self.responses_r])
-
-        if len(self.responses_l) == 0:
-            ldiff = 0
-        else:
-            sum_l = sum(self.responses_l)
-            n_l = len(self.responses_l)
-            mean_l = np.ravel(sum_l / n_l)
-            ldiff = n_l / self.n_samples * sum([np.linalg.norm(np.ravel(r) - mean_l) for r in self.responses_l])
-
-        return ldiff + rdiff
+        dist_r = self._h(self.responses_r)
+        dist_l = self._h(self.responses_l)
+        return dist_r + dist_l
 
 
 def error_at_leaf(y, sample_mask, criterion, n_node_samples):

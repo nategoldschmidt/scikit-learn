@@ -70,7 +70,7 @@ def test_empirical_toy():
     assert_almost_equal(clf.predict(T), true_result)
 
     # With subsampling
-    clf = tree.DecisionTreeRegressor(max_features=1, random_state=1)
+    clf = tree.tree.DecisionTreeEmpiricalRegressor(max_features=1, random_state=1)
     clf.fit(X, y)
 
     assert_almost_equal(clf.predict(T), true_result)
