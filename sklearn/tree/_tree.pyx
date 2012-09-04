@@ -796,6 +796,12 @@ cdef class Tree:
         _best_error[0] = best_error
         _initial_error[0] = initial_error
 
+
+    cpdef compute_responses(self, responses):
+        # FIXME: implement
+        pass
+
+
     cpdef predict(self, np.ndarray[DTYPE_t, ndim=2] X):
         """Predict target for X."""
         cdef int i, k, c
@@ -1504,6 +1510,33 @@ cdef class MSE(RegressionCriterion):
             total += var_right[k]
 
         return total / n_outputs
+
+
+cdef class Ultra(Criterion):
+    cdef void init(self, DOUBLE_t* y, int y_stride, BOOL_t*
+                   sample_mask, int n_samples, int n_total_samples):
+        """Initialise the criterion."""
+        pass
+
+    cdef void reset(self):
+        """Reset the criterion for a new feature index."""
+        pass
+
+    cdef int update(self, int a, int b, DOUBLE_t* y, int y_stride,
+                    int* X_argsorted_i, BOOL_t* sample_mask):
+        """Update the criteria for each value in interval [a,b) (where a and b
+           are indices in `X_argsorted_i`)."""
+        pass
+
+    cdef double eval(self):
+        """Evaluate the criteria (aka the split error)."""
+        pass
+
+    cdef void init_value(self, double* buffer_value):
+        """Get the initial value of the criterion (`init` must be called
+           before)."""
+        pass
+
 
 
 # ==============================================================================

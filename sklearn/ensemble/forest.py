@@ -226,7 +226,7 @@ class BaseForest(BaseEnsemble, SelectorMixin):
             Returns self.
         """
         self.random_state = check_random_state(self.random_state)
-        
+
         # Precompute some data
         X, y = check_arrays(X, y, sparse_format="dense")
         if getattr(X, "dtype", None) != DTYPE or \
@@ -855,6 +855,91 @@ class RandomForestRegressor(ForestRegressor):
         self.min_samples_leaf = min_samples_leaf
         self.min_density = min_density
         self.max_features = max_features
+
+
+class RandomForestUltra(RandomForest):
+    def __init__(self, n_estimators=10,
+                       criterion="ultra-metric",
+                       metric="euclidean",
+                       method="median",
+                       max_depth=None,
+                       min_samples_split=1,
+                       min_samples_leaf=1,
+                       min_density=0.1,
+                       max_features="auto",
+                       bootstrap=True,
+                       compute_importances=False,
+                       oob_score=False,
+                       n_jobs=1,
+                       random_state=None,
+                       verbose=0):
+        super(RandomForestUltra, self).__init__(
+            base_estimator=DecisionTreeUltra(),
+            n_estimators=n_estimators,
+            estimator_params=("criterion", "max_depth", "min_samples_split",
+                "min_samples_leaf", "min_density", "max_features",
+                "random_state", "lca", "dists", "responses")
+            bootstrap=bootstrap,
+            compute_importances=compute_importances,
+            oob_score=oob_score,
+            n_jobs=n_jobs,
+            random_state=random_state,
+            verbose=verbose)
+
+        self.criterion = criterion
+        self.max_depth = max_depth
+        self.min_samples_split = min_samples_split
+        self.min_samples_leaf = min_samples_leaf
+        self.min_density = min_density
+        self.max_features = max_features
+
+        self.metric = metric
+        self.method = method
+
+
+    def fit(self, X, y):
+        # compute data structures
+        lca, dists = self._get_dists(X)
+        self.responses = y
+        self.lca = lca
+        self.dists = dists
+
+        # run fitting
+        indices = np.arange(len(y))
+        super(RandomForestArb, self).fit(X, indices)
+
+
+    def _parents(Z):
+        """
+        Converts the output of hierarchical clustering to the tree
+        structure supported by LCA.
+
+        Returns:
+
+        - the tree
+        - the distances
+
+        """
+        nsamples = Z.shape[0] + 1
+        parents = dict()
+        distances = {}
+        for idx in range(Z.shape[0]):
+            parent = nsamples + idx
+            c1, c2, dist, size = Z[idx]
+            c1, c2 = int(c1), int(c2)
+            parents[c1] = int(parent)
+            parents[c2] = int(parent)
+            distances[parent] = dist
+        return parents, distances
+
+
+    def _get_dists(X)
+        D = fastcluster.pdist(X, self.metric)
+        Z = fastcluster.linkage(D, self.method, preserve_input=False)
+        parents, dists = self._parents(Z)
+        lca = _LCA.LCA(parents)
+        dists = np.array([dists[i] for i in range(len(dists))])
+        return lca, dists
 
 
 class ExtraTreesClassifier(ForestClassifier):

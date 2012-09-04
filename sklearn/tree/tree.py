@@ -14,7 +14,7 @@ from __future__ import division
 import numpy as np
 from abc import ABCMeta, abstractmethod
 
-from ..base import BaseEstimator, ClassifierMixin, RegressorMixin
+from ..base import BaseEstimator, ClassifierMixin, RegressorMixin, RegressorUltraMixin
 from ..feature_selection.selector_mixin import SelectorMixin
 from ..utils import array2d, check_random_state
 
@@ -36,6 +36,11 @@ CLASSIFICATION = {
 
 REGRESSION = {
     "mse": _tree.MSE,
+}
+
+
+ULTRA = {
+    "ultra-metric": _tree.Ultra,
 }
 
 
@@ -192,7 +197,7 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
             Returns self.
         """
         self.random_state = check_random_state(self.random_state)
-        
+
         # set min_samples_split sensibly
         self.min_samples_split = max(self.min_samples_split,
                                      2 * self.min_samples_leaf)
@@ -205,6 +210,12 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         n_samples, self.n_features_ = X.shape
 
         is_classification = isinstance(self, ClassifierMixin)
+        if isinstance(self, ClassifierMixin):
+            tree_type = "classification"
+        elif isinstance(self, RegressorMixin):
+            tree_type = "regression"
+        elif isinstance(self, RegressorUltraMixin):
+            tree_type = "ultra"
 
         y = np.atleast_1d(y)
         if y.ndim == 1:
@@ -214,7 +225,7 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         self.n_classes_ = []
         self.n_outputs_ = y.shape[1]
 
-        if is_classification:
+        if tree_type == "classification":
             y = np.copy(y)
 
             for k in xrange(self.n_outputs_):
@@ -223,25 +234,33 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
                 self.n_classes_.append(unique.shape[0])
                 y[:, k] = np.searchsorted(unique, y[:, k])
 
-        else:
+        elif tree_type in ("regression", "ultra"):
             self.classes_ = [None] * self.n_outputs_
             self.n_classes_ = [1] * self.n_outputs_
+        else:
+            raise Exception()
 
         if getattr(y, "dtype", None) != DOUBLE or not y.flags.contiguous:
             y = np.ascontiguousarray(y, dtype=DOUBLE)
 
-        if is_classification:
+        if tree_type == "classification":
             criterion = CLASSIFICATION[self.criterion](self.n_outputs_,
                                                        self.n_classes_)
-        else:
+        elif tree_type == "regression":
             criterion = REGRESSION[self.criterion](self.n_outputs_)
+        elif tree_type == "ultra":
+            criterion = ULTRA[self.criterion](self.n_outputs_,
+                                              self.lca,
+                                              self.dists)
+        else:
+            raise Exception()
 
         # Check parameters
         max_depth = np.inf if self.max_depth is None else self.max_depth
 
         if isinstance(self.max_features, basestring):
             if self.max_features == "auto":
-                if is_classification:
+                if tree_type == "classification":
                     max_features = max(1, int(np.sqrt(self.n_features_)))
                 else:
                     max_features = self.n_features_
@@ -289,6 +308,9 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
 
         self.tree_.build(X, y, sample_mask=sample_mask,
                          X_argsorted=X_argsorted)
+
+        if tree_type == "ultra":
+            self.tree_.compute_responses(self.responses)
 
         if self.compute_importances:
             self.feature_importances_ = \
@@ -630,6 +652,27 @@ class DecisionTreeRegressor(BaseDecisionTree, RegressorMixin):
                        max_features=None,
                        compute_importances=False,
                        random_state=None):
+        super(DecisionTreeRegressor, self).__init__(criterion,
+                                                    max_depth,
+                                                    min_samples_split,
+                                                    min_samples_leaf,
+                                                    min_density,
+                                                    max_features,
+                                                    compute_importances,
+                                                    random_state)
+
+
+class DecisionTreeUltra(BaseDecisionTree, RegressorMixin):
+    def __init__(self, lca,
+                       dists,
+                       criterion="ultra-metric",
+                       max_depth=None,
+                       min_samples_split=1,
+                       min_samples_leaf=1,
+                       min_density=0.1,
+                       max_features=None,
+                       compute_importances=False,
+                       random_state=None,):
         super(DecisionTreeRegressor, self).__init__(criterion,
                                                     max_depth,
                                                     min_samples_split,

@@ -312,6 +312,10 @@ class RegressorMixin(object):
         return r2_score(y, self.predict(X))
 
 
+class RegressorUltraMixin(RegressorMixin):
+    pass
+
+
 ###############################################################################
 class ClusterMixin(object):
     """Mixin class for all cluster estimators in scikit-learn"""
