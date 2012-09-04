@@ -40,7 +40,7 @@ REGRESSION = {
 
 
 ULTRA = {
-    "ultra-metric": _tree.Ultra,
+    "ultra": _tree.Ultra,
 }
 
 
@@ -665,7 +665,7 @@ class DecisionTreeRegressor(BaseDecisionTree, RegressorMixin):
 class DecisionTreeUltra(BaseDecisionTree, RegressorMixin):
     def __init__(self, lca,
                        dists,
-                       criterion="ultra-metric",
+                       criterion="ultra",
                        max_depth=None,
                        min_samples_split=1,
                        min_samples_leaf=1,

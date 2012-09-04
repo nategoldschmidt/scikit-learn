@@ -859,7 +859,7 @@ class RandomForestRegressor(ForestRegressor):
 
 class RandomForestUltra(RandomForest):
     def __init__(self, n_estimators=10,
-                       criterion="ultra-metric",
+                       criterion="ultra",
                        metric="euclidean",
                        method="median",
                        max_depth=None,
