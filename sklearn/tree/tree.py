@@ -213,10 +213,10 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         is_classification = isinstance(self, ClassifierMixin)
         if isinstance(self, ClassifierMixin):
             tree_type = "classification"
-        elif isinstance(self, RegressorMixin):
-            tree_type = "regression"
         elif isinstance(self, RegressorUltraMixin):
             tree_type = "ultra"
+        elif isinstance(self, RegressorMixin) and not isinstance(self, RegressorUltraMixin):
+            tree_type = "regression"
 
         y = np.atleast_1d(y)
         if y.ndim == 1:
