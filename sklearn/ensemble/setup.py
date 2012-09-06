@@ -7,6 +7,9 @@ def configuration(parent_package="", top_path=None):
     config.add_extension("_gradient_boosting",
                          sources=["_gradient_boosting.c"],
                          include_dirs=[numpy.get_include()])
+    config.add_extension("_LCA",
+                         sources=["_LCA.c"],
+                         include_dirs=[numpy.get_include()])
 
     config.add_subpackage("tests")
 

@@ -177,7 +177,7 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         self.tree_ = None
         self.feature_importances_ = None
 
-    def fit(self, X, y, sample_mask=None, X_argsorted=None):
+    def fit(self, X, y, sample_mask=None, X_argsorted=None, **kwargs):
         """Build a decision tree from the training set (X, y).
 
         Parameters
@@ -250,11 +250,7 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         elif tree_type == "regression":
             criterion = REGRESSION[self.criterion](self.n_outputs_)
         elif tree_type == "ultra":
-            criterion = ULTRA[self.criterion](self.n_outputs_,
-                                              self.responses,
-                                              self.lca,
-                                              self.dists)
-
+            criterion = ULTRA[self.criterion](self.n_outputs_, **kwargs)
         else:
             raise Exception()
 
@@ -663,10 +659,8 @@ class DecisionTreeRegressor(BaseDecisionTree, RegressorMixin):
                                                     random_state)
 
 
-class DecisionTreeUltra(BaseDecisionTree, RegressorMixin):
-    def __init__(self, lca,
-                       dists,
-                       criterion="ultra",
+class DecisionTreeUltra(BaseDecisionTree, RegressorUltraMixin):
+    def __init__(self, criterion="ultra",
                        max_depth=None,
                        min_samples_split=1,
                        min_samples_leaf=1,
@@ -674,7 +668,7 @@ class DecisionTreeUltra(BaseDecisionTree, RegressorMixin):
                        max_features=None,
                        compute_importances=False,
                        random_state=None,):
-        super(DecisionTreeRegressor, self).__init__(criterion,
+        super(DecisionTreeUltra, self).__init__(criterion,
                                                     max_depth,
                                                     min_samples_split,
                                                     min_samples_leaf,

@@ -64,7 +64,8 @@ MAX_INT = np.iinfo(np.int32).max
 
 
 def _parallel_build_trees(n_trees, forest, X, y,
-                          sample_mask, X_argsorted, seed, verbose):
+                          sample_mask, X_argsorted, seed, verbose,
+                          **kwargs):
     """Private function used to build a batch of trees within a job."""
     random_state = check_random_state(seed)
     trees = []
@@ -82,12 +83,12 @@ def _parallel_build_trees(n_trees, forest, X, y,
             n_samples = X.shape[0]
             indices = random_state.randint(0, n_samples, n_samples)
             tree.fit(X[indices], y[indices],
-                     sample_mask=sample_mask, X_argsorted=X_argsorted)
+                     sample_mask=sample_mask, X_argsorted=X_argsorted, **kwargs)
             tree.indices_ = indices
 
         else:
             tree.fit(X, y,
-                     sample_mask=sample_mask, X_argsorted=X_argsorted)
+                     sample_mask=sample_mask, X_argsorted=X_argsorted, **kwargs)
 
         trees.append(tree)
 
@@ -212,7 +213,7 @@ class BaseForest(BaseEnsemble, SelectorMixin):
 
         self.verbose = verbose
 
-    def fit(self, X, y):
+    def fit(self, X, y, **kwargs):
         """Build a forest of trees from the training set (X, y).
 
         Parameters
@@ -292,7 +293,8 @@ class BaseForest(BaseEnsemble, SelectorMixin):
                 sample_mask,
                 X_argsorted,
                 self.random_state.randint(MAX_INT),
-                verbose=self.verbose)
+                verbose=self.verbose,
+                **kwargs)
             for i in xrange(n_jobs))
 
         # Reduce
@@ -882,7 +884,7 @@ class RandomForestUltra(ForestRegressor):
             n_estimators=n_estimators,
             estimator_params=("criterion", "max_depth", "min_samples_split",
                 "min_samples_leaf", "min_density", "max_features",
-                "random_state", "lca", "dists", "responses"),
+                "random_state"),
             bootstrap=bootstrap,
             compute_importances=compute_importances,
             oob_score=oob_score,
@@ -904,13 +906,10 @@ class RandomForestUltra(ForestRegressor):
     def fit(self, X, y):
         # compute data structures
         lca, dists = self._get_dists(X)
-        self.responses = y
-        self.lca = lca
-        self.dists = dists
 
         # run fitting
         indices = np.arange(len(y))
-        super(RandomForestUltra, self).fit(X, indices)
+        super(RandomForestUltra, self).fit(X, indices, responses=y, lca=lca, dists=dists)
 
 
     def _parents(self, Z):
@@ -942,7 +941,9 @@ class RandomForestUltra(ForestRegressor):
         Z = fastcluster.linkage(D, self.method, preserve_input=False)
         parents, dists = self._parents(Z)
         lca = _LCA.LCA(parents)
-        dists = np.array([dists[i] for i in range(len(dists))])
+        single_dists = list(0 for i in range(X.shape[0]))
+        cluster_dists = list(dists[k] for k in sorted(dists.keys()))
+        dists = np.array(single_dists + cluster_dists)
         return lca, dists
 
 
