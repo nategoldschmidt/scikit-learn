@@ -44,7 +44,8 @@ from ..base import ClassifierMixin, RegressorMixin
 from ..externals.joblib import Parallel, delayed, cpu_count
 from ..feature_selection.selector_mixin import SelectorMixin
 from ..tree import DecisionTreeClassifier, DecisionTreeRegressor, \
-                   ExtraTreeClassifier, ExtraTreeRegressor
+    DecisionTreeUltra, \
+    ExtraTreeClassifier, ExtraTreeRegressor
 from ..tree._tree import DTYPE, DOUBLE
 from ..utils import array2d, check_random_state, check_arrays
 from ..metrics import r2_score
@@ -860,7 +861,7 @@ class RandomForestRegressor(ForestRegressor):
         self.max_features = max_features
 
 
-class RandomForestUltra(RandomForest):
+class RandomForestUltra(ForestRegressor):
     def __init__(self, n_estimators=10,
                        criterion="ultra",
                        metric="euclidean",
@@ -909,10 +910,10 @@ class RandomForestUltra(RandomForest):
 
         # run fitting
         indices = np.arange(len(y))
-        super(RandomForestArb, self).fit(X, indices)
+        super(RandomForestUltra, self).fit(X, indices)
 
 
-    def _parents(Z):
+    def _parents(self, Z):
         """
         Converts the output of hierarchical clustering to the tree
         structure supported by LCA.
@@ -936,7 +937,7 @@ class RandomForestUltra(RandomForest):
         return parents, distances
 
 
-    def _get_dists(X):
+    def _get_dists(self, X):
         D = fastcluster.pdist(X, self.metric)
         Z = fastcluster.linkage(D, self.method, preserve_input=False)
         parents, dists = self._parents(Z)
