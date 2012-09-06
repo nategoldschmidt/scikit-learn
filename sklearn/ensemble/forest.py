@@ -83,7 +83,7 @@ def _parallel_build_trees(n_trees, forest, X, y,
             n_samples = X.shape[0]
             indices = random_state.randint(0, n_samples, n_samples)
             tree.fit(X[indices], y[indices],
-                     sample_mask=sample_mask, X_argsorted=X_argsorted, **kwargs)
+                     sample_mask=sample_mask, X_argsorted=X_argsorted, indices=indices, **kwargs)
             tree.indices_ = indices
 
         else:
@@ -906,6 +906,8 @@ class RandomForestUltra(ForestRegressor):
     def fit(self, X, y):
         # compute data structures
         lca, dists = self._get_dists(X)
+        self.lca = lca
+        self.dists = dists
 
         # run fitting
         indices = np.arange(len(y))
@@ -939,6 +941,7 @@ class RandomForestUltra(ForestRegressor):
     def _get_dists(self, X):
         D = fastcluster.pdist(X, self.metric)
         Z = fastcluster.linkage(D, self.method, preserve_input=False)
+        self.Z = Z
         parents, dists = self._parents(Z)
         lca = LCA.LCA(parents)
         single_dists = list(0 for i in range(X.shape[0]))

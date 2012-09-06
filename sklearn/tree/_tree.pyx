@@ -18,6 +18,8 @@ import numpy as np
 cimport numpy as np
 np.import_array()
 
+from collections import Counter
+
 cdef extern from "stdlib.h":
     void* malloc(size_t size)
     void* calloc(size_t nmemb, size_t size)
@@ -683,6 +685,7 @@ cdef class Tree:
         _best_t[0] = best_t
         _best_error[0] = best_error
         _initial_error[0] = initial_error
+
 
     cdef void find_random_split(self, DTYPE_t* X_ptr, int X_stride,
                                 int* X_argsorted_ptr, int X_argsorted_stride,
@@ -1517,20 +1520,25 @@ cdef class Ultra(Criterion):
     cdef object idx_left
     cdef object idx_right
     cdef object idx_init
+    cdef object indices
 
-    def __cinit__(self, n_outputs, responses, lca, dists): # TODO: types
+    cdef int n_left
+    cdef int n_right
+
+    def __cinit__(self, n_outputs, responses, lca, dists, indices): # TODO: types
         """Constructor."""
         self.lca = lca
         self.dists = dists
         self.responses = responses
+        self.indices = indices
 
         self.n_samples = 0
 
         self.n_outputs = n_outputs
 
-        self.idx_left = set()
-        self.idx_right = set()
-        self.idx_init = set()
+        self.idx_left = Counter()
+        self.idx_right = Counter()
+        self.idx_init = Counter()
 
 
     def __dealloc__(self):
@@ -1555,17 +1563,22 @@ cdef class Ultra(Criterion):
         self.n_samples = n_samples
 
         cdef int j = 0
-        for j from 0 <= j < n_total_samples:
+        cdef int k = 0
+        for j from 0 <= j < n_samples:
             if sample_mask[j] == 0:
                 continue
-            self.idx_init.add(j)
+            k = self.indices[j]
+            self.idx_init[k] += 1
         self.reset()
 
 
     cdef void reset(self):
         """Reset the criterion for a new feature index."""
         self.idx_right = self.idx_init.copy()
-        self.idx_left = set()
+        self.idx_left = Counter()
+
+        self.n_right = self.n_samples
+        self.n_left = 0
 
 
     cdef int update(self, int a, int b, DOUBLE_t* y, int y_stride,
@@ -1573,7 +1586,7 @@ cdef class Ultra(Criterion):
         """Update the criteria for each value in interval [a,b) (where a and b
            are indices in `X_argsorted_i`)."""
         cdef int n_samples = self.n_samples
-        cdef int idx, j
+        cdef int idx, j, k
 
         # post condition: all samples from [0:b) are on the left side
         for idx from a <= idx < b:
@@ -1582,8 +1595,13 @@ cdef class Ultra(Criterion):
             if sample_mask[j] == 0:
                 continue
 
-            self.idx_left.add(j)
-            self.idx_right.remove(j)
+            k = self.indices[j]
+
+            self.idx_left[k] += 1
+            self.idx_right[k] -= 1
+
+            self.n_left += 1
+            self.n_right -= 1
 
         return len(self.idx_left)
 
@@ -1591,22 +1609,26 @@ cdef class Ultra(Criterion):
     cdef double eval(self):
         """Evaluate the criteria (aka the split error)."""
 
-        cdef double total = 0.0
-        total += self.dists[self.lca(*list(self.idx_right))]
-        if len(self.idx_left) > 0:
-            total += self.dists[self.lca(*list(self.idx_left))]
-        return total
+        right_elts = set(self.idx_right.elements())
+        left_elts = set(self.idx_left.elements())
+
+        cdef double right = self.dists[self.lca(*right_elts)]
+        cdef double left = 0.0
+        if self.n_left > 0:
+            left = self.dists[self.lca(*left_elts)]
+
+        return max(left, right)
 
 
     cdef void init_value(self, double* buffer_value):
         """Get the initial value of the criterion (`init` must be called
            before)."""
-        indices = [i for i in self.idx_init]
+        indices = list(self.idx_init.elements())
         response = self.responses[indices].mean(axis=0).reshape(-1)
 
-        cdef int k
-        for k from 0 <= k < self.n_outputs:
-            buffer_value[k] = response[k]
+        cdef int i
+        for i from 0 <= i < self.n_outputs:
+            buffer_value[i] = response[i]
 
 
 # ==============================================================================
