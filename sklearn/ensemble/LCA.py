@@ -192,24 +192,37 @@ class LCA:
 
         levels = []
         self._representatives = {}
-        self._visit(children,levels,root[0],0)
+        self._traverse(parent, children, levels, root[0])
         if [x for x in parent if x not in self._representatives]:
             raise ValueError("LCA input is not a tree")
         self._rangemin = RangeMinFactory(levels)
 
-    def __call__(self,*nodes):
+    def __call__(self, *nodes):
         """Find least common ancestor of a set of nodes."""
         r = [self._representatives[x] for x in nodes]
-        return self._rangemin[min(r):max(r)+1][1]
+        return self._rangemin[min(r) : max(r) + 1][1]
 
-    def _visit(self,children,levels,node,level):
+
+    def _traverse(self, parent, children, levels, root):
         """Perform Euler traversal of tree."""
-        self._representatives[node] = len(levels)
-        pair = (level,node)
-        levels.append(pair)
-        for child in children[node]:
-            self._visit(children,levels,child,level+1)
+        visited = defaultdict(int)
+        level = 0
+        node = root
+
+        while True:
+            self._representatives[node] = len(levels)
+            visited[node] += 1
+            pair = (level, node)
             levels.append(pair)
+            if visited[node] == len(children[node]) + 1:
+                if node == root:
+                    break
+                level -= 1
+                node = parent[node]
+            else:
+                level += 1
+                node = children[node][visited[node] - 1]
+
 
 class OfflineLCA(defaultdict):
     """Find LCAs of all pairs in a given sequence, using Union-Find."""
