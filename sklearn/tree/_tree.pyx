@@ -1511,6 +1511,12 @@ cdef class Ultra(Criterion):
 
     cdef int n_outputs
     cdef int n_samples
+    cdef object lca
+    cdef np.ndarray dists
+    cdef np.ndarray responses
+    cdef object idx_left
+    cdef object idx_right
+    cdef object idx_init
 
     def __cinit__(self, n_outputs, responses, lca, dists): # TODO: types
         """Constructor."""
@@ -1552,14 +1558,14 @@ cdef class Ultra(Criterion):
         for j from 0 <= j < n_total_samples:
             if sample_mask[j] == 0:
                 continue
-            self.idx_init.add(y[j])
+            self.idx_init.add(j)
         self.reset()
 
 
     cdef void reset(self):
         """Reset the criterion for a new feature index."""
-
         self.idx_right = self.idx_init.copy()
+        self.idx_left = set()
 
 
     cdef int update(self, int a, int b, DOUBLE_t* y, int y_stride,
@@ -1586,8 +1592,9 @@ cdef class Ultra(Criterion):
         """Evaluate the criteria (aka the split error)."""
 
         cdef double total = 0.0
-        total += self.dists[self.lca(self.idx_left)]
-        total += self.dists[self.lca(self.idx_right)]
+        total += self.dists[self.lca(*list(self.idx_right))]
+        if len(self.idx_left) > 0:
+            total += self.dists[self.lca(*list(self.idx_left))]
         return total
 
 
