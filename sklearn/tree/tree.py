@@ -23,6 +23,7 @@ from . import _tree
 
 __all__ = ["DecisionTreeClassifier",
            "DecisionTreeRegressor",
+           "DecisionTreeUltra",
            "ExtraTreeClassifier",
            "ExtraTreeRegressor"]
 
@@ -250,8 +251,10 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
             criterion = REGRESSION[self.criterion](self.n_outputs_)
         elif tree_type == "ultra":
             criterion = ULTRA[self.criterion](self.n_outputs_,
+                                              self.responses,
                                               self.lca,
                                               self.dists)
+
         else:
             raise Exception()
 
@@ -309,8 +312,6 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         self.tree_.build(X, y, sample_mask=sample_mask,
                          X_argsorted=X_argsorted)
 
-        if tree_type == "ultra":
-            self.tree_.compute_responses(self.responses)
 
         if self.compute_importances:
             self.feature_importances_ = \

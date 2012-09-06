@@ -50,9 +50,12 @@ from ..utils import array2d, check_random_state, check_arrays
 from ..metrics import r2_score
 
 from .base import BaseEnsemble
+import _LCA
+import fastcluster
 
 __all__ = ["RandomForestClassifier",
            "RandomForestRegressor",
+           "RandomForestUltra",
            "ExtraTreesClassifier",
            "ExtraTreesRegressor"]
 
@@ -878,7 +881,7 @@ class RandomForestUltra(RandomForest):
             n_estimators=n_estimators,
             estimator_params=("criterion", "max_depth", "min_samples_split",
                 "min_samples_leaf", "min_density", "max_features",
-                "random_state", "lca", "dists", "responses")
+                "random_state", "lca", "dists", "responses"),
             bootstrap=bootstrap,
             compute_importances=compute_importances,
             oob_score=oob_score,
@@ -933,7 +936,7 @@ class RandomForestUltra(RandomForest):
         return parents, distances
 
 
-    def _get_dists(X)
+    def _get_dists(X):
         D = fastcluster.pdist(X, self.metric)
         Z = fastcluster.linkage(D, self.method, preserve_input=False)
         parents, dists = self._parents(Z)

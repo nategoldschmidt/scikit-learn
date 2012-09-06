@@ -797,11 +797,6 @@ cdef class Tree:
         _initial_error[0] = initial_error
 
 
-    cpdef compute_responses(self, responses):
-        # FIXME: implement
-        pass
-
-
     cpdef predict(self, np.ndarray[DTYPE_t, ndim=2] X):
         """Predict target for X."""
         cdef int i, k, c
@@ -1513,30 +1508,98 @@ cdef class MSE(RegressionCriterion):
 
 
 cdef class Ultra(Criterion):
+
+    cdef int n_outputs
+    cdef int n_samples
+
+    def __cinit__(self, n_outputs, responses, lca, dists): # TODO: types
+        """Constructor."""
+        self.lca = lca
+        self.dists = dists
+        self.responses = responses
+
+        self.n_samples = 0
+
+        self.n_outputs = n_outputs
+
+        self.idx_left = set()
+        self.idx_right = set()
+        self.idx_init = set()
+
+
+    def __dealloc__(self):
+        """Destructor."""
+        pass
+
+
+    def __reduce__(self):
+        return (RegressionCriterion,
+                (self.n_outputs,),
+                self.__getstate__())
+
+    def __getstate__(self):
+        return {}
+
+    def __setstate__(self, d):
+        pass
+
     cdef void init(self, DOUBLE_t* y, int y_stride, BOOL_t*
                    sample_mask, int n_samples, int n_total_samples):
         """Initialise the criterion."""
-        pass
+        self.n_samples = n_samples
+
+        cdef int j = 0
+        for j from 0 <= j < n_total_samples:
+            if sample_mask[j] == 0:
+                continue
+            self.idx_init.add(y[j])
+        self.reset()
+
 
     cdef void reset(self):
         """Reset the criterion for a new feature index."""
-        pass
+
+        self.idx_right = self.idx_init.copy()
+
 
     cdef int update(self, int a, int b, DOUBLE_t* y, int y_stride,
                     int* X_argsorted_i, BOOL_t* sample_mask):
         """Update the criteria for each value in interval [a,b) (where a and b
            are indices in `X_argsorted_i`)."""
-        pass
+        cdef int n_samples = self.n_samples
+        cdef int idx, j
+
+        # post condition: all samples from [0:b) are on the left side
+        for idx from a <= idx < b:
+            j = X_argsorted_i[idx]
+
+            if sample_mask[j] == 0:
+                continue
+
+            self.idx_left.add(j)
+            self.idx_right.remove(j)
+
+        return len(self.idx_left)
+
 
     cdef double eval(self):
         """Evaluate the criteria (aka the split error)."""
-        pass
+
+        cdef double total = 0.0
+        total += self.dists[self.lca(self.idx_left)]
+        total += self.dists[self.lca(self.idx_right)]
+        return total
+
 
     cdef void init_value(self, double* buffer_value):
         """Get the initial value of the criterion (`init` must be called
            before)."""
-        pass
+        indices = [i for i in self.idx_init]
+        response = self.responses[indices].mean(axis=0).reshape(-1)
 
+        cdef int k
+        for k from 0 <= k < self.n_outputs:
+            buffer_value[k] = response[k]
 
 
 # ==============================================================================
