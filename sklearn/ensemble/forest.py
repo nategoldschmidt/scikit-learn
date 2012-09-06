@@ -51,7 +51,7 @@ from ..utils import array2d, check_random_state, check_arrays
 from ..metrics import r2_score
 
 from .base import BaseEnsemble
-import _LCA
+import LCA
 import fastcluster
 
 __all__ = ["RandomForestClassifier",
@@ -940,7 +940,7 @@ class RandomForestUltra(ForestRegressor):
         D = fastcluster.pdist(X, self.metric)
         Z = fastcluster.linkage(D, self.method, preserve_input=False)
         parents, dists = self._parents(Z)
-        lca = _LCA.LCA(parents)
+        lca = LCA.LCA(parents)
         single_dists = list(0 for i in range(X.shape[0]))
         cluster_dists = list(dists[k] for k in sorted(dists.keys()))
         dists = np.array(single_dists + cluster_dists)
