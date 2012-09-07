@@ -905,7 +905,7 @@ class RandomForestUltra(ForestRegressor):
 
     def fit(self, X, y):
         # compute data structures
-        lca, dists = self._get_dists(X)
+        lca, dists = self._get_dists(y)
         self.lca = lca
         self.dists = dists
 
@@ -938,13 +938,15 @@ class RandomForestUltra(ForestRegressor):
         return parents, distances
 
 
-    def _get_dists(self, X):
-        D = fastcluster.pdist(X, self.metric)
+    def _get_dists(self, y):
+        if y.ndim == 1:
+            y = y.reshape(-1, 1)
+        D = fastcluster.pdist(y, self.metric)
         Z = fastcluster.linkage(D, self.method, preserve_input=False)
         self.Z = Z
         parents, dists = self._parents(Z)
         lca = LCA.LCA(parents)
-        single_dists = list(0 for i in range(X.shape[0]))
+        single_dists = list(0 for i in range(y.shape[0]))
         cluster_dists = list(dists[k] for k in sorted(dists.keys()))
         dists = np.array(single_dists + cluster_dists)
         return lca, dists
