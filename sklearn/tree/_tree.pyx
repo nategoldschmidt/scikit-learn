@@ -450,17 +450,17 @@ cdef class Tree:
         # Current node is internal node (= split node)
         else:
             # Sample mask is too sparse?
-            if 1. * n_node_samples / n_total_samples <= self.min_density:
-                X = X[sample_mask]
-                X_argsorted = np.asfortranarray(np.argsort(X.T, axis=1).astype(np.int32).T)
-                y = y[sample_mask]
-                sample_mask = np.ones((n_node_samples, ), dtype=np.bool)
+            # if 1. * n_node_samples / n_total_samples <= self.min_density:
+            #     X = X[sample_mask]
+            #     X_argsorted = np.asfortranarray(np.argsort(X.T, axis=1).astype(np.int32).T)
+            #     y = y[sample_mask]
+            #     sample_mask = np.ones((n_node_samples, ), dtype=np.bool)
 
-                n_total_samples = n_node_samples
+            #     n_total_samples = n_node_samples
 
-                X_ptr = <DTYPE_t*> X.data
-                X_stride = <int> X.strides[1] / <int> X.strides[0]
-                sample_mask_ptr = <BOOL_t*> sample_mask.data
+            #     X_ptr = <DTYPE_t*> X.data
+            #     X_stride = <int> X.strides[1] / <int> X.strides[0]
+            #     sample_mask_ptr = <BOOL_t*> sample_mask.data
 
                 # !! No need to update the other variables
                 # X_argsorted_ptr = <int*> X_argsorted.data
@@ -1516,34 +1516,34 @@ cdef class Ultra(Criterion):
     cdef int n_samples
     cdef object lca
     cdef np.ndarray dists
-    cdef np.ndarray responses
     cdef object idx_left
     cdef object idx_right
     cdef object idx_init
-    cdef object indices
+
+    cdef double* init_val
 
     cdef int n_left
     cdef int n_right
 
-    def __cinit__(self, n_outputs, responses, lca, dists, indices): # TODO: types
+    def __cinit__(self, n_outputs, lca, dists): # TODO: types
         """Constructor."""
         self.lca = lca
         self.dists = dists
-        self.responses = responses
-        self.indices = indices
 
         self.n_samples = 0
 
         self.n_outputs = n_outputs
 
-        self.idx_left = Counter()
-        self.idx_right = Counter()
-        self.idx_init = Counter()
+        self.idx_left = None
+        self.idx_right = None
+        self.idx_init = None
+
+        self.init_val = <double*> calloc(n_outputs, sizeof(double))
 
 
     def __dealloc__(self):
         """Destructor."""
-        pass
+        free(self.init_val)
 
 
     def __reduce__(self):
@@ -1563,17 +1563,26 @@ cdef class Ultra(Criterion):
         self.idx_left = Counter()
         self.idx_right = Counter()
         self.idx_init = Counter()
-
         self.n_samples = n_samples
 
+        cdef double* init_val = self.init_val
         cdef int j = 0
         cdef int k = 0
+
+        for k from 0 <= k < self.n_outputs:
+            init_val[k] = 0.0
 
         for j from 0 <= j < n_total_samples:
             if sample_mask[j] == 0:
                 continue
-            k = self.indices[j]
-            self.idx_init.update((k,))
+            self.idx_init.update((j,))
+
+            for k from 0 <= k < self.n_outputs:
+                init_val[k] += y[j * y_stride + k]
+
+        for k from 0 <= k < self.n_outputs:
+            init_val[k] /= n_samples
+
         self.reset()
 
 
@@ -1591,7 +1600,7 @@ cdef class Ultra(Criterion):
         """Update the criteria for each value in interval [a,b) (where a and b
            are indices in `X_argsorted_i`)."""
         cdef int n_samples = self.n_samples
-        cdef int idx, j, k
+        cdef int idx, j
 
         # post condition: all samples from [0:b) are on the left side
         for idx from a <= idx < b:
@@ -1600,10 +1609,8 @@ cdef class Ultra(Criterion):
             if sample_mask[j] == 0:
                 continue
 
-            k = self.indices[j]
-
-            self.idx_left.update((k,))
-            self.idx_right.subtract((k,))
+            self.idx_left.update((j,))
+            self.idx_right.subtract((j,))
             self.n_left += 1
             self.n_right -= 1
 
@@ -1627,12 +1634,8 @@ cdef class Ultra(Criterion):
     cdef void init_value(self, double* buffer_value):
         """Get the initial value of the criterion (`init` must be called
            before)."""
-        indices = list(self.idx_init.elements())
-        response = self.responses[indices].mean(axis=0).reshape(-1)
-
-        cdef int i
         for i from 0 <= i < self.n_outputs:
-            buffer_value[i] = response[i]
+            buffer_value[i] = self.init_val[i]
 
 
 
