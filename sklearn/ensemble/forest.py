@@ -910,8 +910,7 @@ class RandomForestUltra(ForestRegressor):
         self.dists = dists
 
         # run fitting
-        indices = np.arange(len(y))
-        super(RandomForestUltra, self).fit(X, y, responses=y, lca=lca, dists=dists)
+        super(RandomForestUltra, self).fit(X, y, lca=lca, dists=dists)
 
 
     def _parents(self, Z):

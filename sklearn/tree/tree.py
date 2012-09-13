@@ -250,7 +250,8 @@ class BaseDecisionTree(BaseEstimator, SelectorMixin):
         elif tree_type == "regression":
             criterion = REGRESSION[self.criterion](self.n_outputs_)
         elif tree_type == "ultra":
-            criterion = ULTRA[self.criterion](self.n_outputs_, **kwargs)
+            criterion = ULTRA[self.criterion](self.n_outputs_,
+                                              responses=y, **kwargs)
         else:
             raise Exception()
 
