@@ -1560,15 +1560,20 @@ cdef class Ultra(Criterion):
     cdef void init(self, DOUBLE_t* y, int y_stride, BOOL_t*
                    sample_mask, int n_samples, int n_total_samples):
         """Initialise the criterion."""
+        self.idx_left = Counter()
+        self.idx_right = Counter()
+        self.idx_init = Counter()
+
         self.n_samples = n_samples
 
         cdef int j = 0
         cdef int k = 0
+
         for j from 0 <= j < n_total_samples:
             if sample_mask[j] == 0:
                 continue
             k = self.indices[j]
-            self.idx_init[k] += 1
+            self.idx_init.update((k,))
         self.reset()
 
 
@@ -1597,12 +1602,10 @@ cdef class Ultra(Criterion):
 
             k = self.indices[j]
 
-            tmp = self.idx_right[k]
-            self.idx_left[k] = tmp
-            self.idx_right[k] = 0
-
-            self.n_left += tmp
-            self.n_right -= tmp
+            self.idx_left.update((k,))
+            self.idx_right.subtract((k,))
+            self.n_left += 1
+            self.n_right -= 1
 
         return self.n_left
 
@@ -1630,6 +1633,7 @@ cdef class Ultra(Criterion):
         cdef int i
         for i from 0 <= i < self.n_outputs:
             buffer_value[i] = response[i]
+
 
 
 # ==============================================================================
