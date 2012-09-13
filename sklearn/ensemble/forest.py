@@ -945,6 +945,8 @@ class RandomForestUltra(ForestRegressor):
         Z = fastcluster.linkage(D, self.method, preserve_input=False)
         self.Z = Z
         parents, dists = self._parents(Z)
+        self.parents = parents
+        self.dists_dict = dists
         lca = LCA.LCA(parents)
         single_dists = list(0 for i in range(y.shape[0]))
         cluster_dists = list(dists[k] for k in sorted(dists.keys()))

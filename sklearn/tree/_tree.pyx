@@ -1564,7 +1564,7 @@ cdef class Ultra(Criterion):
 
         cdef int j = 0
         cdef int k = 0
-        for j from 0 <= j < n_samples:
+        for j from 0 <= j < n_total_samples:
             if sample_mask[j] == 0:
                 continue
             k = self.indices[j]
@@ -1597,13 +1597,14 @@ cdef class Ultra(Criterion):
 
             k = self.indices[j]
 
-            self.idx_left[k] += 1
-            self.idx_right[k] -= 1
+            tmp = self.idx_right[k]
+            self.idx_left[k] = tmp
+            self.idx_right[k] = 0
 
-            self.n_left += 1
-            self.n_right -= 1
+            self.n_left += tmp
+            self.n_right -= tmp
 
-        return len(self.idx_left)
+        return self.n_left
 
 
     cdef double eval(self):
