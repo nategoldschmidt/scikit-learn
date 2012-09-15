@@ -189,6 +189,13 @@ cdef class Tree:
             shape[2] = <np.npy_intp> self.max_n_classes
             return np.PyArray_SimpleNewFromData(3, shape, np.NPY_DOUBLE, self.value)
 
+
+    property value_is_zero:
+        def __get__(self):
+            cdef np.npy_intp shape[1]
+            shape[0] = <np.npy_intp> self.node_count
+            return np.PyArray_SimpleNewFromData(3, shape, np.NPY_BOOL, self.value_is_zero)
+
     property best_error:
         def __get__(self):
             return doublep_to_ndarray(self.best_error, self.node_count)
@@ -243,6 +250,7 @@ cdef class Tree:
         self.feature = <int*> malloc(capacity * sizeof(int))
         self.threshold = <double*> malloc(capacity * sizeof(double))
         self.value = <double*> malloc(capacity * self.value_stride * sizeof(double));
+        self.value_is_zero = <int*> malloc(capacity * sizeof(int));
         self.best_error = <double*> malloc(capacity * sizeof(double));
         self.init_error = <double*> malloc(capacity * sizeof(double));
         self.n_samples = <int*> malloc(capacity * sizeof(int));
@@ -257,6 +265,7 @@ cdef class Tree:
         free(self.feature)
         free(self.threshold)
         free(self.value)
+        free(self.value_is_zero)
         free(self.best_error)
         free(self.init_error)
         free(self.n_samples)
@@ -286,6 +295,7 @@ cdef class Tree:
         d["feature"] = intp_to_ndarray(self.feature, self.capacity)
         d["threshold"] = doublep_to_ndarray(self.threshold, self.capacity)
         d["value"] = doublep_to_ndarray(self.value, self.capacity * self.value_stride)
+        d["value_is_zero"] = intp_to_ndarray(self.value_is_zero, self.capacity)
         d["best_error"] = doublep_to_ndarray(self.best_error, self.capacity)
         d["init_error"] = doublep_to_ndarray(self.init_error, self.capacity)
         d["n_samples"] = intp_to_ndarray(self.n_samples, self.capacity)
@@ -302,6 +312,7 @@ cdef class Tree:
         cdef int* feature = <int*> (<np.ndarray> d["feature"]).data
         cdef double* threshold = <double*> (<np.ndarray> d["threshold"]).data
         cdef double* value = <double*> (<np.ndarray> d["value"]).data
+        cdef int* value_is_zero = <int*> (<np.ndarray> d["value_is_zero"]).data
         cdef double* best_error = <double*> (<np.ndarray> d["best_error"]).data
         cdef double* init_error = <double*> (<np.ndarray> d["init_error"]).data
         cdef int* n_samples = <int*> (<np.ndarray> d["n_samples"]).data
@@ -311,6 +322,7 @@ cdef class Tree:
         memcpy(self.feature, feature, self.capacity * sizeof(int))
         memcpy(self.threshold, threshold, self.capacity * sizeof(double))
         memcpy(self.value, value, self.capacity * self.value_stride * sizeof(double))
+        memcpy(self.value_is_zero, value_is_zero, self.capacity * sizeof(int))
         memcpy(self.best_error, best_error, self.capacity * sizeof(double))
         memcpy(self.init_error, init_error, self.capacity * sizeof(double))
         memcpy(self.n_samples, n_samples, self.capacity * sizeof(int))
@@ -330,6 +342,7 @@ cdef class Tree:
         self.feature = <int*> realloc(self.feature, capacity * sizeof(int))
         self.threshold = <double*> realloc(self.threshold, capacity * sizeof(double))
         self.value = <double*> realloc(self.value, capacity * self.value_stride * sizeof(double))
+        self.value_is_zero = <int*> realloc(self.value_is_zero, capacity * sizeof(int))
         self.best_error = <double*> realloc(self.best_error, capacity * sizeof(double))
         self.init_error = <double*> realloc(self.init_error, capacity * sizeof(double))
         self.n_samples = <int*> realloc(self.n_samples, capacity * sizeof(int))
@@ -513,6 +526,8 @@ cdef class Tree:
         cdef int offset_node = node_id * self.value_stride
         memcpy(self.value + offset_node, value, self.value_stride * sizeof(double))
 
+        self.value_is_zero[node_id] = 0
+
         self.init_error[node_id] = init_error
         self.best_error[node_id] = best_error
         self.n_samples[node_id] = n_samples
@@ -539,6 +554,13 @@ cdef class Tree:
 
         cdef int offset_node = node_id * self.n_outputs * self.max_n_classes
         memcpy(self.value + offset_node, value, self.value_stride * sizeof(double))
+
+        self.value_is_zero[node_id] = 1
+        cdef int i = 0
+        for i from 0 <= i < self.value_stride:
+            if value[i] != 0.0:
+                self.value_is_zero[node_id] = 0
+                break
 
         self.init_error[node_id] = error
         self.best_error[node_id] = error
@@ -816,6 +838,9 @@ cdef class Tree:
                     node_id = self.children_left[node_id]
                 else:
                     node_id = self.children_right[node_id]
+
+            if self.value_is_zero[node_id]:
+                continue
 
             offset_node = node_id * self.value_stride
 

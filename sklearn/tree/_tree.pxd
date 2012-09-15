@@ -60,6 +60,7 @@ cdef class Tree:
     cdef int* feature
     cdef double* threshold
     cdef double* value
+    cdef int* value_is_zero
     cdef double* best_error
     cdef double* init_error
     cdef int* n_samples
