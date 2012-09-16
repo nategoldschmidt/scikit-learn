@@ -10,4 +10,5 @@ from .forest import ExtraTreesClassifier
 from .forest import ExtraTreesRegressor
 from .gradient_boosting import GradientBoostingClassifier
 from .gradient_boosting import GradientBoostingRegressor
-from .stacking import Stacking, estimator_grid
+from .stacking import \
+    Stacking, FeatureWeightedLinearStacking, estimator_grid

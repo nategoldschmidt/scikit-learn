@@ -7,7 +7,7 @@ from ..utils.validation import assert_all_finite
 
 __all__ = [
     "Stacking",
-    "StackingC",
+    "FeatureWeightedLinearStacking",
     'estimator_grid'
     ]
 
@@ -113,14 +113,14 @@ class Stacking(BaseEnsemble):
 
     + cv : a cross validation object.
 
-    + stackingc : whether to use StackingC or not.
+    + stackingc : whether to use StackingC or not. For more
+      information, this paper:
 
           Seewald A.K.: How to Make Stacking Better and Faster While
           Also Taking Care of an Unknown Weakness, in Sammut C.,
           Hoffmann A. (eds.), Proceedings of the Nineteenth
           International Conference on Machine Learning (ICML 2002),
           Morgan Kaufmann Publishers, pp.554-561, 2002.
-
 
     + kwargs : arguments passed to instantiate meta_estimator.
 
