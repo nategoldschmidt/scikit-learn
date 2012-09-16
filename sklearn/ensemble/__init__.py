@@ -10,3 +10,4 @@ from .forest import ExtraTreesClassifier
 from .forest import ExtraTreesRegressor
 from .gradient_boosting import GradientBoostingClassifier
 from .gradient_boosting import GradientBoostingRegressor
+from .stacking import Stacking, StackingC, estimator_grid
