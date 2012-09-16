@@ -174,3 +174,14 @@ class StackingC(Stacking):
 
     """
     pass
+
+
+class FeatureWeightedLinearStacking(Stacking):
+    """
+    Implements Feature-Weighted Linear Stacking.
+
+    Sill, J. and Takacs, G. and Mackey, L. and Lin, D.:
+    Feature-weighted linear stacking. Arxiv preprint. 2009.
+
+    """
+    pass
