@@ -30,18 +30,42 @@ class MRLR(ClassifierMixin):
     Intelligence Research 10, 271–289 (1999)
 
     """
-    def __init__(self, regressor, **kwargs):
+    def __init__(self, regressor, stackingc, **kwargs):
         self.estimator_ = regressor
-        self.estimator_args = kwargs
+        self.estimator_args_ = kwargs
+        self.stackingc_ = stackingc
+
+
+    def _get_subdata(self, X):
+        """
+        Returns subsets of the data, one for each class. Assumes the
+        columns of X are striped in order.
+
+        e.g. if n_classes_ == 3, then returns
+        (X[:, 0::3], X[:, 1::3], X[:, 2::3])
+
+        """
+        if not self.stackingc_:
+            return [X,] * self.n_classes_
+
+        result = []
+        for i in range(self.n_classes_):
+            slc = (slice(None), slice(i, None, self.n_classes_))
+            result.append(X[slc])
+        return result
 
 
     def fit(self, X, y):
         self.n_classes_ = len(set(y))
         self.estimators_ = []
+
+        X_subs = self._get_subdata(X)
+
         for i in range(self.n_classes_):
-            e = self.estimator_(**self.estimator_args)
+            e = self.estimator_(**self.estimator_args_)
             y_i = np.array(list(j == i for j in y))
-            e.fit(X, y_i)
+            X_i = X_subs[i]
+            e.fit(X_i, y_i)
             self.estimators_.append(e)
 
 
@@ -53,9 +77,12 @@ class MRLR(ClassifierMixin):
     def predict_proba(self, X):
         proba = []
 
+        X_subs = self._get_subdata(X)
+
         for i in range(self.n_classes_):
             e = self.estimators_[i]
-            pred = e.predict(X).reshape(-1, 1)
+            X_i = X_subs[i]
+            pred = e.predict(X_i).reshape(-1, 1)
             proba.append(pred)
         proba = np.hstack(proba)
 
@@ -64,10 +91,8 @@ class MRLR(ClassifierMixin):
         proba /= normalizer
 
         assert_all_finite(proba)
-        assert np.all(proba.sum(axis=1) == 1)
 
         return proba
-
 
 
 class Stacking(BaseEnsemble):
@@ -88,16 +113,29 @@ class Stacking(BaseEnsemble):
 
     + cv : a cross validation object.
 
+    + stackingc : whether to use StackingC or not.
+
+          Seewald A.K.: How to Make Stacking Better and Faster While
+          Also Taking Care of an Unknown Weakness, in Sammut C.,
+          Hoffmann A. (eds.), Proceedings of the Nineteenth
+          International Conference on Machine Learning (ICML 2002),
+          Morgan Kaufmann Publishers, pp.554-561, 2002.
+
+
     + kwargs : arguments passed to instantiate meta_estimator.
 
     """
 
     # TODO: support different features for each estimator
 
-    def __init__(self, meta_estimator, estimators, cv, **kwargs):
+    def __init__(self, meta_estimator, estimators, cv, stackingc=True, **kwargs):
         self.estimators_ = estimators
         self.n_estimators_ = len(estimators)
         self.cv_ = cv
+        self.stackingc_ = stackingc
+
+        if stackingc and not issubclass(meta_estimator, RegressorMixin):
+            raise Exception('StackingC only works with a regressor.')
 
         if isinstance(meta_estimator, str):
             if meta_estimator not in ('best',
@@ -108,7 +146,7 @@ class Stacking(BaseEnsemble):
         elif issubclass(meta_estimator, ClassifierMixin):
             self.meta_estimator_ = meta_estimator(**kwargs)
         elif issubclass(meta_estimator, RegressorMixin):
-            self.meta_estimator_ = MRLR(meta_estimator, **kwargs)
+            self.meta_estimator_ = MRLR(meta_estimator, stackingc, **kwargs)
         else:
             raise Exception('invalid meta estimator: {0}'.format(meta_estimator))
 
@@ -123,7 +161,7 @@ class Stacking(BaseEnsemble):
 
 
     def fit(self, X, y):
-        # Build meta data #
+        # Build meta data
         X_meta = []
         y_meta = []
 
@@ -144,10 +182,10 @@ class Stacking(BaseEnsemble):
         else:
             y_meta = np.vstack(y_meta)
 
-        # train meta estimator #
+        # train meta estimator
         self.meta_estimator_.fit(X_meta, y_meta)
 
-        # re-train estimators on full data #
+        # re-train estimators on full data
         for e in self.estimators_:
             e.fit(X, y)
 
@@ -160,20 +198,6 @@ class Stacking(BaseEnsemble):
     def predict_proba(self, X):
         X_meta = self._make_meta(X)
         return self.meta_estimator_.predict_proba(X_meta)
-
-
-class StackingC(Stacking):
-    """
-    Implements StackingC.
-
-    Seewald A.K.: How to Make Stacking Better and Faster While Also
-    Taking Care of an Unknown Weakness, in Sammut C., Hoffmann A.
-    (eds.), Proceedings of the Nineteenth International Conference on
-    Machine Learning (ICML 2002), Morgan Kaufmann Publishers,
-    pp.554-561, 2002.
-
-    """
-    pass
 
 
 class FeatureWeightedLinearStacking(Stacking):
