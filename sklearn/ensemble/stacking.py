@@ -111,7 +111,9 @@ class Stacking(BaseEnsemble):
     + estimators : an iterable of estimators; each must support
       predict_proba()
 
-    + cv : a cross validation object.
+    + cv : a cross validation object. Level 0 estimators are trained
+      on the training folds, then the meta estimator is trained on the
+      testing folds.
 
     + stackingc : whether to use StackingC or not. For more
       information, this paper:
