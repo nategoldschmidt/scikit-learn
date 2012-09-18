@@ -7,7 +7,7 @@ from ..utils.validation import assert_all_finite
 
 __all__ = [
     "Stacking",
-    "FeatureWeightedLinearStacking",
+    "StackingFWL",
     'estimator_grid'
     ]
 
@@ -129,6 +129,10 @@ class Stacking(BaseEnsemble):
     """
 
     # TODO: support different features for each estimator
+    # TODO: support "best", "vote", and "average" for already trained
+    # model.
+    # TODO: allow saving of estimators, so they need not be retrained
+    # when trying new stacking methods.
 
     def __init__(self, meta_estimator, estimators, cv, stackingc=True, **kwargs):
         self.estimators_ = estimators
@@ -202,7 +206,7 @@ class Stacking(BaseEnsemble):
         return self.meta_estimator_.predict_proba(X_meta)
 
 
-class FeatureWeightedLinearStacking(Stacking):
+class StackingFWL(Stacking):
     """
     Implements Feature-Weighted Linear Stacking.
 
