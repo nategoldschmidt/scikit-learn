@@ -5,11 +5,16 @@ from ..grid_search import IterGrid
 from ..base import ClassifierMixin, RegressorMixin
 from ..utils.validation import assert_all_finite
 
+# TODO: capability to train base estimators seperately.
+# TODO: built-in nested cross validation, re-using base classifiers,
+# to pick best stacking method.
+# TODO: access to best, vote, etc. after training.
+
 __all__ = [
     "Stacking",
     "StackingFWL",
     'estimator_grid'
-    ]
+]
 
 
 def estimator_grid(*args):
@@ -22,12 +27,11 @@ def estimator_grid(*args):
 
 
 class MRLR(ClassifierMixin):
-    """
-    Converts a multi-class classification task into a set of
+    """Converts a multi-class classification task into a set of
     indicator regression tasks.
 
-    Ting, K.M., Witten, I.H.: Issues in stacked generalization. Journal of Artificial
-    Intelligence Research 10, 271–289 (1999)
+    Ting, K.M., Witten, I.H.: Issues in stacked generalization.
+    Journal of Artificial Intelligence Research 10, 271–289 (1999)
 
     """
     def __init__(self, regressor, stackingc, **kwargs):
@@ -35,25 +39,22 @@ class MRLR(ClassifierMixin):
         self.estimator_args_ = kwargs
         self.stackingc_ = stackingc
 
-
     def _get_subdata(self, X):
-        """
-        Returns subsets of the data, one for each class. Assumes the
+        """Returns subsets of the data, one for each class. Assumes the
         columns of X are striped in order.
 
-        e.g. if n_classes_ == 3, then returns
-        (X[:, 0::3], X[:, 1::3], X[:, 2::3])
+        e.g. if n_classes_ == 3, then returns (X[:, 0::3], X[:, 1::3],
+        X[:, 2::3])
 
         """
         if not self.stackingc_:
-            return [X,] * self.n_classes_
+            return [X, ] * self.n_classes_
 
         result = []
         for i in range(self.n_classes_):
             slc = (slice(None), slice(i, None, self.n_classes_))
             result.append(X[slc])
         return result
-
 
     def fit(self, X, y):
         self.n_classes_ = len(set(y))
@@ -68,11 +69,9 @@ class MRLR(ClassifierMixin):
             e.fit(X_i, y_i)
             self.estimators_.append(e)
 
-
     def predict(self, X):
         proba = self.predict_proba(X)
         return np.argmax(proba, axis=1)
-
 
     def predict_proba(self, X):
         proba = []
@@ -134,7 +133,8 @@ class Stacking(BaseEnsemble):
     # TODO: allow saving of estimators, so they need not be retrained
     # when trying new stacking methods.
 
-    def __init__(self, meta_estimator, estimators, cv, stackingc=True, **kwargs):
+    def __init__(self, meta_estimator, estimators,
+                 cv, stackingc=True, **kwargs):
         self.estimators_ = estimators
         self.n_estimators_ = len(estimators)
         self.cv_ = cv
@@ -156,7 +156,6 @@ class Stacking(BaseEnsemble):
         else:
             raise Exception('invalid meta estimator: {0}'.format(meta_estimator))
 
-
     def _make_meta(self, X):
         rows = []
         for e in self.estimators_:
@@ -164,7 +163,6 @@ class Stacking(BaseEnsemble):
             assert_all_finite(proba)
             rows.append(proba)
         return np.hstack(rows)
-
 
     def fit(self, X, y):
         # Build meta data
@@ -195,11 +193,9 @@ class Stacking(BaseEnsemble):
         for e in self.estimators_:
             e.fit(X, y)
 
-
     def predict(self, X):
         X_meta = self._make_meta(X)
         return self.meta_estimator_.predict(X_meta)
-
 
     def predict_proba(self, X):
         X_meta = self._make_meta(X)
