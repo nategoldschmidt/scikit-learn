@@ -4,6 +4,7 @@ from itertools import izip
 from ..grid_search import IterGrid
 from ..base import ClassifierMixin, RegressorMixin
 from ..utils.validation import assert_all_finite
+import logging
 
 # TODO: capability to train base estimators seperately.
 # TODO: built-in nested cross validation, re-using base classifiers,
@@ -21,8 +22,11 @@ def estimator_grid(*args):
     result = []
     pairs = izip(args[::2], args[1::2])
     for estimator, params in pairs:
-        for params in IterGrid(params):
-            result.append(estimator(**params))
+        if len(params) == 0:
+            result.append(estimator())
+        else:
+            for p in IterGrid(params):
+                result.append(estimator(**p))
     return result
 
 
@@ -134,7 +138,8 @@ class Stacking(BaseEnsemble):
     # when trying new stacking methods.
 
     def __init__(self, meta_estimator, estimators,
-                 cv, stackingc=True, **kwargs):
+                 cv, stackingc=True,
+                 **kwargs):
         self.estimators_ = estimators
         self.n_estimators_ = len(estimators)
         self.cv_ = cv
@@ -170,10 +175,12 @@ class Stacking(BaseEnsemble):
         y_meta = []
 
         for a, b in self.cv_:
+            logging.info('new stacking fold')
             X_a, X_b = X[a], X[b]
             y_a, y_b = y[a], y[b]
 
             for e in self.estimators_:
+                logging.info('stacking training level-0 estimator {0}'.format(e))
                 e.fit(X_a, y_a)
 
             proba = self._make_meta(X_b)
@@ -187,9 +194,11 @@ class Stacking(BaseEnsemble):
             y_meta = np.vstack(y_meta)
 
         # train meta estimator
+        logging.info('training meta estimator')
         self.meta_estimator_.fit(X_meta, y_meta)
 
         # re-train estimators on full data
+        logging.info('re-training estimators on full data')
         for e in self.estimators_:
             e.fit(X, y)
 
