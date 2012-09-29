@@ -194,7 +194,7 @@ cdef class Tree:
         def __get__(self):
             cdef np.npy_intp shape[1]
             shape[0] = <np.npy_intp> self.node_count
-            return np.PyArray_SimpleNewFromData(3, shape, np.NPY_BOOL, self.value_is_zero)
+            return np.PyArray_SimpleNewFromData(1, shape, np.NPY_INT, self.value_is_zero)
 
     property best_error:
         def __get__(self):
