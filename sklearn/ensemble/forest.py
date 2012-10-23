@@ -692,6 +692,11 @@ class ForestRegressor(six.with_metaclass(ABCMeta, BaseForest, RegressorMixin)):
 
         return y_hat
 
+    def collapse(self):
+        for t in self.estimators_:
+            t.tree_.collapse()
+        self.n_outputs_ = 1
+
 
 class RandomForestClassifier(ForestClassifier):
     """A random forest classifier.
