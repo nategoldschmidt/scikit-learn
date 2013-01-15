@@ -1769,9 +1769,9 @@ cdef double _total_sse(double* sse, int n_outputs):
 
 cdef class MSE(RegressionCriterion):
     """
-    Overall mean squared error impurity criterion.
+    Mean squared error impurity criterion.
 
-    MSE = (sse_left + sse_right) / N
+    MSE = (sse_left + sse_right) / d
 
     """
     cdef double eval(self):
@@ -1785,9 +1785,9 @@ cdef class MSE(RegressionCriterion):
 
 cdef class SSE(RegressionCriterion):
     """
-    Weighted sum of squared error impurity criterion.
+    Sum of squared error impurity criterion.
 
-    SSE = (n_left * sse_left + n_right * sse_right) / N
+    SSE = (weighted_n_left * sse_left + weighted_n_right * sse_right) / d
 
     """
     cdef double eval(self):
