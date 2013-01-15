@@ -647,6 +647,7 @@ class ForestRegressor(six.with_metaclass(ABCMeta, BaseForest, RegressorMixin)):
                  n_jobs=1,
                  random_state=None,
                  verbose=0):
+        self.collapsed = False
         super(ForestRegressor, self).__init__(
             base_estimator,
             n_estimators=n_estimators,
@@ -692,7 +693,14 @@ class ForestRegressor(six.with_metaclass(ABCMeta, BaseForest, RegressorMixin)):
 
         return y_hat
 
+    def fit(self, X, y, sample_weight=None):
+        self.collapsed = False
+        super(ForestRegressor, self).fit(X, y, sample_weight)
+
     def collapse(self):
+        if self.collapsed:
+            return
+        self.collapsed = True
         for t in self.estimators_:
             t.tree_.collapse()
         self.n_outputs_ = 1
